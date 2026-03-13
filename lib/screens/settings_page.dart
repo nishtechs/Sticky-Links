@@ -1,0 +1,324 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
+import '../providers/settings_provider.dart';
+import '../providers/links_provider.dart';
+import '../models/link_item.dart';
+import '../widgets/window_buttons.dart';
+import '../services/backup_service.dart';
+
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
+  Future<void> _exportData(BuildContext context) async {
+    final linksProvider = Provider.of<LinksProvider>(context, listen: false);
+    // Use raw links, not the filtered/sorted links.
+    // Provider exposes links which are filtered. Let's add an allLinks getter or just export them.
+    // Wait, LinksProvider exposes 'links' which applies search filters. We want to export ALL links.
+    // We should add `allLinks` to provider, but for now we'll just pull `linksProvider.allLinks`
+    List<LinkItem> all = linksProvider.allLinks;
+    final jsonList = all.map((link) => link.toJson()).toList();
+    final jsonString = jsonEncode(jsonList);
+
+    String? outputFile = await FilePicker.platform.saveFile(
+      dialogTitle: 'Export Links to File',
+      fileName: 'sticky_links_backup.json',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+
+    if (outputFile != null) {
+      final file = File(outputFile);
+      await file.writeAsString(jsonString);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Export successful!')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData(BuildContext context) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+
+    if (result != null) {
+      final file = File(result.files.single.path!);
+      final content = await file.readAsString();
+      try {
+        final List<dynamic> jsonList = jsonDecode(content);
+        final linksProvider = Provider.of<LinksProvider>(context, listen: false);
+        int added = 0;
+        
+        for (var item in jsonList) {
+          final link = LinkItem.fromJson(item);
+          if (!linksProvider.allLinks.any((l) => l.url == link.url)) {
+            await linksProvider.addLink(link);
+            added++;
+          }
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Import complete! Added $added new links.')),
+          );
+        }
+      } catch (e) {
+         if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Failed to parse import file format.')),
+           );
+         }
+      }
+    }
+  }
+
+  Future<void> _pickBackupPath(BuildContext context) async {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Select Custom Backup Folder',
+    );
+
+    if (selectedDirectory != null) {
+      await settings.setCustomBackupPath(selectedDirectory);
+      BackupService.updateScheduler(); // Re-trigger initial backup sequence
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final settings = Provider.of<SettingsProvider>(context);
+
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight + appWindow.titleBarHeight),
+        child: Column(
+          children: [
+            WindowTitleBarBox(
+              child: Row(
+                children: [
+                  Expanded(child: MoveWindow()),
+                  const CustomWindowButtons(),
+                ],
+              ),
+            ),
+            AppBar(
+              primary: false,
+              title: const Text('Settings'),
+              centerTitle: true,
+            ),
+          ],
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Display Settings
+          _buildSectionHeader('Display', Icons.display_settings_rounded, colorScheme),
+          const SizedBox(height: 12),
+          _buildSettingsCard(
+            colorScheme: colorScheme,
+            children: [
+              _buildSwitchTile(
+                icon: Icons.grid_view_rounded,
+                title: 'Grid View',
+                subtitle: 'Display links in a grid layout',
+                value: settings.isGridView,
+                onChanged: (value) => settings.toggleGridView(value),
+                colorScheme: colorScheme,
+              ),
+              const Divider(height: 1),
+              _buildSwitchTile(
+                icon: Icons.dark_mode_rounded,
+                title: 'Dark Mode',
+                subtitle: 'Use dark theme',
+                value: settings.isDarkMode,
+                onChanged: (value) => settings.toggleDarkMode(value),
+                colorScheme: colorScheme,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // Data Management
+          _buildSectionHeader('Data', Icons.storage_rounded, colorScheme),
+          const SizedBox(height: 12),
+          _buildSettingsCard(
+            colorScheme: colorScheme,
+            children: [
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.download_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                ),
+                title: const Text('Export Data'),
+                subtitle: const Text('Save your links to a file'),
+                onTap: () => _exportData(context),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.upload_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                ),
+                title: const Text('Import Data'),
+                subtitle: const Text('Load links from a file'),
+                onTap: () => _importData(context),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.access_time_filled_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                ),
+                title: const Text('Auto Backup Interval'),
+                subtitle: const Text('Frequency of background backups'),
+                trailing: DropdownButton<int>(
+                  value: settings.backupIntervalHours,
+                  underline: const SizedBox(),
+                  items: const [
+                    DropdownMenuItem(value: 0, child: Text('Off')),
+                    DropdownMenuItem(value: 1, child: Text('Every 1 Hour')),
+                    DropdownMenuItem(value: 12, child: Text('Every 12 Hours')),
+                    DropdownMenuItem(value: 24, child: Text('Every 24 Hours')),
+                  ],
+                  onChanged: (int? newValue) {
+                    if (newValue != null) {
+                      settings.setBackupInterval(newValue);
+                      BackupService.updateScheduler();
+                    }
+                  },
+                ),
+              ),
+              const Divider(height: 1),
+              FutureBuilder<String>(
+                future: BackupService.getResolvedBackupPath(),
+                builder: (context, snapshot) {
+                  final pathText = snapshot.data ?? 'Loading...';
+                  return ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.folder_open_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                    ),
+                    title: const Text('Backup Location'),
+                    subtitle: Text(pathText, style: TextStyle(fontSize: 12)),
+                    trailing: TextButton(
+                      onPressed: () => _pickBackupPath(context),
+                      child: const Text('Change'),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // About Section
+          _buildSectionHeader('About', Icons.info_rounded, colorScheme),
+          const SizedBox(height: 12),
+          _buildSettingsCard(
+            colorScheme: colorScheme,
+            children: [
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.link_rounded, color: colorScheme.onPrimaryContainer),
+                ),
+                title: const Text('Sticky Links'),
+                subtitle: const Text('Version 2.0.0'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, ColorScheme colorScheme) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.primary,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSettingsCard({
+    required ColorScheme colorScheme,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required ColorScheme colorScheme,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 20),
+      ),
+      title: Text(title),
+      subtitle: Text(subtitle, style: TextStyle(color: colorScheme.outline)),
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
