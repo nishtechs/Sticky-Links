@@ -1,77 +1,72 @@
-# Sticky Links
+# 📎 Sticky Links
 
-A Flutter desktop application for managing and organizing your favorite links in a sticky note style interface.
+A premium, modern Flutter Desktop application designed to help you organize, categorize, and preserve your most important web links with ease. Featuring a sleek UI, real-time local backups, and an intuitive user experience.
 
-## Features
+![Sticky Links Logo](app_logo.png)
 
-- Add links with custom titles
-- View all saved links in a clean card-based interface
-- Remove links when no longer needed
-- Simple and intuitive user interface
+## ✨ Features
 
-## Getting Started
+- **📂 Smart Categorization**: Organize your links into custom categories. Rename or delete categories via a simple right-click context menu.
+- **🔍 Instant Search**: Rapidly find links by title, URL, or description with real-time filtering.
+- **🛡️ Auto-Backup System**: Your data is safe. The app performs silent background backups every hour and triggers an instant backup the moment you add, edit, or remove a link.
+- **🎨 Custom Window Frame**: Integration with `bitsdojo_window` Provides a native-looking custom title bar for a premium desktop feel.
+- **🌓 Dark Mode Support**: Seamlessly switch between light and dark themes based on your preference.
+- **💾 Persistent Storage**: Powered by **Hive**, a lightweight and blazing-fast key-value database for local persistence.
+- **✨ Animated UI**: Smooth entrance animations using `flutter_staggered_animations` for list and grid views.
+- **🎓 Interactive Showcase**: Built-in tutorial walkthrough for first-time users to get started quickly.
+- **📤 Import/Export**: Easily migrate your data by exporting or importing JSON backup files.
+
+## 🛠️ Technology Stack
+
+- **Framework**: [Flutter](https://flutter.dev/) (Desktop Windows)
+- **State Management**: [Provider](https://pub.dev/packages/provider)
+- **Database**: [Hive](https://pub.dev/packages/hive) & [Hive Flutter](https://pub.dev/packages/hive_flutter)
+- **Animations**: [Flutter Staggered Animations](https://pub.dev/packages/flutter_staggered_animations)
+- **Tutorials**: [ShowcaseView](https://pub.dev/packages/showcaseview)
+- **Window Management**: [bitsdojo_window](https://pub.dev/packages/bitsdojo_window)
+- **Icons**: [Flutter Launcher Icons](https://pub.dev/packages/flutter_launcher_icons)
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Flutter SDK (3.0 or higher)
-- Windows 10/11 (for Windows desktop support)
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) installed on your machine.
+- Windows 10/11 for the native desktop experience.
+- Visual Studio (with C++ development workload) for Windows builds.
 
 ### Installation
 
-1. Clone the repository:
-   ```
-   git clone <repository-url>
-   ```
-
-2. Navigate to the project directory:
-   ```
-   cd sticky_links
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/nishtechs/Sticky-Links.git
+   cd Sticky-Links
    ```
 
-3. Enable Windows desktop support:
-   ```
-   flutter config --enable-windows-desktop
-   ```
-
-4. Get dependencies:
-   ```
+2. **Install dependencies**:
+   ```bash
    flutter pub get
    ```
 
-### Running the Application
+3. **Generate Hive Adapters**:
+   ```bash
+   flutter pub run build_runner build --delete-conflicting-outputs
+   ```
 
-To run the application on Windows desktop:
+4. **Run the application**:
+   ```bash
+   flutter run -d windows
+   ```
 
-```
-flutter run -d windows
-```
+## 📁 Backup Locations
 
-To build a release version:
+By default, the application saves your automated backups to:
+`C:\Users\<YourUser>\Documents\sticky_links\backup.json`
 
-```
-flutter build windows
-```
+You can change this path at any time within the **Settings** menu.
 
-The executable will be located at `build\windows\x64\runner\Release\sticky_links.exe`
+## 📸 Screenshots
 
-## Project Structure
+*(Add screenshots of your application here once you have them!)*
 
-- `lib/main.dart` - Main application entry point and UI implementation
-- `pubspec.yaml` - Project dependencies and configuration
-
-## Dependencies
-
-- Flutter SDK
-- Dart SDK
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+---
+Developed with ❤️ using Flutter.
