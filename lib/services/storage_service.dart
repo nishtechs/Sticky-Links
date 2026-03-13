@@ -70,4 +70,7 @@ class StorageService {
 
   static bool get hasShownTutorial => settingsBox.get('hasShownTutorial', defaultValue: false);
   static Future<void> setHasShownTutorial(bool value) async => await settingsBox.put('hasShownTutorial', value);
+
+  static int get themeColorValue => settingsBox.get('themeColorValue', defaultValue: 0xFF6366F1);
+  static Future<void> setThemeColorValue(int value) async => await settingsBox.put('themeColorValue', value);
 }

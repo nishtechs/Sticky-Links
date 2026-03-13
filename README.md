@@ -6,15 +6,16 @@ A premium, modern Flutter Desktop application designed to help you organize, cat
 
 ## ✨ Features
 
-- **📂 Smart Categorization**: Organize your links into custom categories. Rename or delete categories via a simple right-click context menu.
-- **🔍 Instant Search**: Rapidly find links by title, URL, or description with real-time filtering.
+- **📂 Smart Categorization**: Organize your links into custom categories. Rename, delete, or export specific categories via a right-click context menu.
+- **🔍 Instant Search & Shortcuts**: Rapidly find links by title, URL, or description. Use `Ctrl+F` for search, `Ctrl+N` for new links, and `Ctrl+H` to toggle the archive.
+- **📦 Archiving & Bulk Actions**: Move links to an Archive instead of deleting them. Use long-press to select multiple links for bulk archiving or deletion.
+- **📈 Click Tracking**: Monitor which links you use the most with built-in click counting and popularity sorting.
 - **🛡️ Auto-Backup System**: Your data is safe. The app performs silent background backups every hour and triggers an instant backup the moment you add, edit, or remove a link.
-- **🎨 Custom Window Frame**: Integration with `bitsdojo_window` Provides a native-looking custom title bar for a premium desktop feel.
-- **🌓 Dark Mode Support**: Seamlessly switch between light and dark themes based on your preference.
+- **🎨 Custom Window & Themes**: Custom title bar and a variety of theme color options for both light and dark modes.
 - **💾 Persistent Storage**: Powered by **Hive**, a lightweight and blazing-fast key-value database for local persistence.
 - **✨ Animated UI**: Smooth entrance animations using `flutter_staggered_animations` for list and grid views.
 - **🎓 Interactive Showcase**: Built-in tutorial walkthrough for first-time users to get started quickly.
-- **📤 Import/Export**: Easily migrate your data by exporting or importing JSON backup files.
+- **📤 Import/Export**: Easily migrate your data by exporting or importing JSON backup files, with automatic category reconstruction.
 
 ## 🛠️ Technology Stack
 

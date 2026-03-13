@@ -51,7 +51,7 @@ class StickyLinksApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
+          seedColor: settings.themeColor,
           brightness: Brightness.light,
         ),
         fontFamily: 'Segoe UI',
@@ -59,7 +59,7 @@ class StickyLinksApp extends StatelessWidget {
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
+          seedColor: settings.themeColor,
           brightness: Brightness.dark,
         ),
         fontFamily: 'Segoe UI',

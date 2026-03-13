@@ -53,19 +53,17 @@ class SettingsPage extends StatelessWidget {
       try {
         final List<dynamic> jsonList = jsonDecode(content);
         final linksProvider = Provider.of<LinksProvider>(context, listen: false);
-        int added = 0;
         
-        for (var item in jsonList) {
-          final link = LinkItem.fromJson(item);
-          if (!linksProvider.allLinks.any((l) => l.url == link.url)) {
-            await linksProvider.addLink(link);
-            added++;
-          }
-        }
+        final importedLinks = jsonList.map((item) => LinkItem.fromJson(item)).toList();
+        final result = await linksProvider.importLinks(importedLinks);
+        final added = result['added'] ?? 0;
+        final updated = result['updated'] ?? 0;
 
         if (context.mounted) {
+          String message = 'Import complete! Added $added new links.';
+          if (updated > 0) message += ' Updated $updated existing categories.';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Import complete! Added $added new links.')),
+            SnackBar(content: Text(message)),
           );
         }
       } catch (e) {
@@ -141,6 +139,44 @@ class SettingsPage extends StatelessWidget {
                 value: settings.isDarkMode,
                 onChanged: (value) => settings.toggleDarkMode(value),
                 colorScheme: colorScheme,
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.palette_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                        ),
+                        const SizedBox(width: 16),
+                        const Text('Theme Color', style: TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _ColorOption(color: const Color(0xFF6366F1), label: 'Indigo'),
+                        _ColorOption(color: const Color(0xFFEF4444), label: 'Red'),
+                        _ColorOption(color: const Color(0xFF10B981), label: 'Emerald'),
+                        _ColorOption(color: const Color(0xFFF59E0B), label: 'Amber'),
+                        _ColorOption(color: const Color(0xFF3B82F6), label: 'Blue'),
+                        _ColorOption(color: const Color(0xFF8B5CF6), label: 'Violet'),
+                        _ColorOption(color: const Color(0xFFEC4899), label: 'Pink'),
+                        _ColorOption(color: const Color(0xFF06B6D4), label: 'Cyan'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -322,3 +358,48 @@ class SettingsPage extends StatelessWidget {
     );
   }
 }
+
+class _ColorOption extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _ColorOption({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+    final isSelected = settings.themeColor.value == color.value;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: () => settings.setThemeColor(color),
+      child: Tooltip(
+        message: label,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isSelected ? colorScheme.onSurface : Colors.transparent,
+              width: 2,
+            ),
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: color.withOpacity(0.4),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+            ],
+          ),
+          child: isSelected
+              ? const Icon(Icons.check, size: 18, color: Colors.white)
+              : null,
+        ),
+      ),
+    );
+  }
+}
+

@@ -23,6 +23,9 @@ class LinkItemAdapter extends TypeAdapter<LinkItem> {
       description: fields[3] as String?,
       faviconUrl: fields[4] as String?,
       category: fields[5] as String?,
+      isArchived: fields[7] as bool?,
+      clickCount: fields[8] as int?,
+      tags: (fields[9] as List?)?.cast<String>(),
       timestamp: fields[6] as int?,
     );
   }
@@ -30,7 +33,7 @@ class LinkItemAdapter extends TypeAdapter<LinkItem> {
   @override
   void write(BinaryWriter writer, LinkItem obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,7 +47,13 @@ class LinkItemAdapter extends TypeAdapter<LinkItem> {
       ..writeByte(5)
       ..write(obj.category)
       ..writeByte(6)
-      ..write(obj.timestamp);
+      ..write(obj.timestamp)
+      ..writeByte(7)
+      ..write(obj.isArchived)
+      ..writeByte(8)
+      ..write(obj.clickCount)
+      ..writeByte(9)
+      ..write(obj.tags);
   }
 
   @override

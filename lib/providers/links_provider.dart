@@ -9,9 +9,13 @@ class LinksProvider with ChangeNotifier {
   List<LinkItem> _links = [];
   String _searchQuery = '';
   String? _selectedCategory;
-  String _sortOrder = 'newest'; // newest, oldest, alphabetical
+  String _sortOrder = 'newest'; // newest, oldest, alphabetical, most_clicked
+  bool _showArchived = false;
+  List<String> _selectedIds = [];
 
   List<LinkItem> get allLinks => _links;
+  bool get showArchived => _showArchived;
+  List<String> get selectedIds => _selectedIds;
 
   List<String> _categories = ['All'];
   List<String> get categories => _categories;
@@ -25,7 +29,9 @@ class LinksProvider with ChangeNotifier {
       
       bool matchesCategory = _selectedCategory == null || _selectedCategory == 'All' || link.category == _selectedCategory;
       
-      return matchesSearch && matchesCategory;
+      bool matchesArchive = link.isArchived == _showArchived;
+      
+      return matchesSearch && matchesCategory && matchesArchive;
     }).toList();
 
     if (_sortOrder == 'newest') {
@@ -34,6 +40,8 @@ class LinksProvider with ChangeNotifier {
       filtered.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     } else if (_sortOrder == 'alphabetical') {
       filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    } else if (_sortOrder == 'most_clicked') {
+      filtered.sort((a, b) => b.clickCount.compareTo(a.clickCount));
     }
 
     return filtered;
@@ -51,12 +59,23 @@ class LinksProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addCategory(String name) async {
-    if (name.isNotEmpty && !_categories.contains(name)) {
-      final newCat = CategoryItem(id: const Uuid().v4(), name: name, colorValue: Colors.blue.value);
+  bool isDuplicate(String url) {
+    String normalizedUrl = url.trim().toLowerCase();
+    if (!normalizedUrl.endsWith('/')) normalizedUrl += '/';
+    return _links.any((l) {
+      String lUrl = l.url.toLowerCase();
+      if (!lUrl.endsWith('/')) lUrl += '/';
+      return lUrl == normalizedUrl;
+    });
+  }
+
+  Future<void> addCategory(String name, {bool notify = true}) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isNotEmpty && !_categories.contains(trimmedName)) {
+      final newCat = CategoryItem(id: const Uuid().v4(), name: trimmedName, colorValue: Colors.blue.value);
       await StorageService.addCategory(newCat);
-      _categories.add(name);
-      notifyListeners();
+      _categories.add(trimmedName);
+      if (notify) notifyListeners();
     }
   }
 
@@ -134,8 +153,87 @@ class LinksProvider with ChangeNotifier {
   Future<void> removeLink(String id) async {
     await StorageService.removeLink(id);
     _links.removeWhere((link) => link.id == id);
+    _selectedIds.remove(id);
     notifyListeners();
     BackupService.triggerManualBackup();
+  }
+
+  Future<void> archiveLink(String id, bool archive) async {
+    int index = _links.indexWhere((l) => l.id == id);
+    if (index != -1) {
+      final old = _links[index];
+      final updated = LinkItem(
+        id: old.id,
+        title: old.title,
+        url: old.url,
+        description: old.description,
+        faviconUrl: old.faviconUrl,
+        category: old.category,
+        timestamp: old.timestamp,
+        isArchived: archive,
+        clickCount: old.clickCount,
+        tags: old.tags,
+      );
+      await StorageService.addLink(updated);
+      _links[index] = updated;
+      notifyListeners();
+      BackupService.triggerManualBackup();
+    }
+  }
+
+  Future<void> incrementClick(String id) async {
+    int index = _links.indexWhere((l) => l.id == id);
+    if (index != -1) {
+      final old = _links[index];
+      final updated = LinkItem(
+        id: old.id,
+        title: old.title,
+        url: old.url,
+        description: old.description,
+        faviconUrl: old.faviconUrl,
+        category: old.category,
+        timestamp: old.timestamp,
+        isArchived: old.isArchived,
+        clickCount: old.clickCount + 1,
+        tags: old.tags,
+      );
+      await StorageService.addLink(updated);
+      _links[index] = updated;
+      notifyListeners();
+    }
+  }
+
+  // Bulk Operations
+  void toggleSelection(String id) {
+    if (_selectedIds.contains(id)) {
+      _selectedIds.remove(id);
+    } else {
+      _selectedIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedIds.clear();
+    notifyListeners();
+  }
+
+  Future<void> bulkDelete() async {
+    for (var id in _selectedIds) {
+      await StorageService.removeLink(id);
+      _links.removeWhere((l) => l.id == id);
+    }
+    _selectedIds.clear();
+    notifyListeners();
+    BackupService.triggerManualBackup();
+  }
+
+  Future<void> bulkArchive(bool archive) async {
+    for (var id in _selectedIds) {
+       await archiveLink(id, archive);
+    }
+    _selectedIds.clear();
+    notifyListeners();
   }
 
   void setSearchQuery(String query) {
@@ -151,5 +249,100 @@ class LinksProvider with ChangeNotifier {
   void setSortOrder(String order) {
     _sortOrder = order;
     notifyListeners();
+  }
+
+  void toggleShowArchived() {
+    _showArchived = !_showArchived;
+    _selectedIds.clear();
+    notifyListeners();
+  }
+  Future<Map<String, int>> importLinks(List<LinkItem> newLinks) async {
+    int added = 0;
+    int updated = 0;
+
+    // 1. Ensure all categories from the backup exist (case-insensitive)
+    for (var link in newLinks) {
+      final rawCat = link.category?.trim();
+      if (rawCat != null && rawCat.isNotEmpty && rawCat != 'All') {
+        bool exists = _categories.any((c) => c.toLowerCase() == rawCat.toLowerCase());
+        if (!exists) {
+          await addCategory(rawCat, notify: false);
+        }
+      }
+    }
+
+    // 2. Prepare for link importing
+    Map<String, LinkItem> currentLinksByUrl = {
+      for (var l in _links) _normalizeUrl(l.url): l
+    };
+
+    for (var link in newLinks) {
+      String normalizedUrl = _normalizeUrl(link.url);
+      
+      // Match category name to the exact casing in our system
+      String? matchedCategory;
+      if (link.category != null) {
+        final trimmed = link.category!.trim();
+        matchedCategory = _categories.firstWhere(
+          (c) => c.toLowerCase() == trimmed.toLowerCase(), 
+          orElse: () => trimmed
+        );
+        if (matchedCategory == 'All') matchedCategory = null;
+      }
+
+      if (!currentLinksByUrl.containsKey(normalizedUrl)) {
+        // New link
+        final linkToAdd = LinkItem(
+          id: const Uuid().v4(),
+          title: link.title,
+          url: link.url,
+          description: link.description,
+          faviconUrl: link.faviconUrl,
+          category: matchedCategory,
+          timestamp: link.timestamp,
+          isArchived: link.isArchived,
+          clickCount: link.clickCount,
+          tags: link.tags,
+        );
+
+        await StorageService.addLink(linkToAdd);
+        _links.add(linkToAdd);
+        currentLinksByUrl[normalizedUrl] = linkToAdd;
+        added++;
+      } else {
+        // Existing link - update category if it's different in the backup
+        final existing = currentLinksByUrl[normalizedUrl]!;
+        if (existing.category != matchedCategory) {
+          final updatedLink = LinkItem(
+            id: existing.id,
+            title: existing.title,
+            url: existing.url,
+            description: existing.description,
+            faviconUrl: existing.faviconUrl,
+            category: matchedCategory, // Use the one from the backup
+            timestamp: existing.timestamp,
+            isArchived: existing.isArchived,
+            clickCount: existing.clickCount,
+            tags: existing.tags,
+          );
+          await StorageService.addLink(updatedLink);
+          int index = _links.indexWhere((l) => l.id == existing.id);
+          if (index != -1) _links[index] = updatedLink;
+          updated++;
+        }
+      }
+    }
+
+    if (added > 0 || updated > 0) {
+      notifyListeners();
+      BackupService.triggerManualBackup();
+    }
+    return {'added': added, 'updated': updated};
+  }
+
+  String _normalizeUrl(String url) {
+    String normalized = url.trim().toLowerCase();
+    if (!normalized.endsWith('/')) normalized += '/';
+    return normalized;
   }
 }

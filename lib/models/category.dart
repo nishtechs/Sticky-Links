@@ -13,9 +13,13 @@ class CategoryItem {
   @HiveField(2)
   final int colorValue;
 
+  @HiveField(3)
+  final int? iconCode;
+
   CategoryItem({
     required this.id,
     required this.name,
     required this.colorValue,
+    this.iconCode,
   });
 }

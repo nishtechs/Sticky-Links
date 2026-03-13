@@ -7,6 +7,9 @@ class LinkCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onArchive;
+  final bool isSelected;
+  final VoidCallback? onLongPress;
   final ColorScheme colorScheme;
 
   const LinkCard({
@@ -15,7 +18,10 @@ class LinkCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    required this.onArchive,
     required this.colorScheme,
+    this.isSelected = false,
+    this.onLongPress,
   });
 
   void _showContextMenu(BuildContext context, Offset position) async {
@@ -61,6 +67,17 @@ class LinkCard extends StatelessWidget {
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
+          value: 'archive',
+          child: Row(
+            children: [
+              Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 20, color: colorScheme.secondary),
+              const SizedBox(width: 12),
+              Text(link.isArchived ? 'Unarchive' : 'Archive'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
@@ -89,6 +106,8 @@ class LinkCard extends StatelessWidget {
       }
     } else if (result == 'edit') {
       onEdit();
+    } else if (result == 'archive') {
+      onArchive();
     } else if (result == 'delete') {
       if (context.mounted) {
         _showDeleteDialog(context);
@@ -126,21 +145,37 @@ class LinkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: colorScheme.surfaceContainerLow,
+      elevation: isSelected ? 4 : 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isSelected ? colorScheme.primary : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      color: isSelected ? colorScheme.primaryContainer.withOpacity(0.3) : colorScheme.surfaceContainerLow,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: onTap,
+          onLongPress: onLongPress,
           onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
           child: InkWell(
             onTap: onTap,
+            onLongPress: onLongPress,
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
+                  if (onLongPress != null) ...[
+                     Checkbox(
+                       value: isSelected,
+                       onChanged: (_) => onLongPress!(),
+                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                     ),
+                     const SizedBox(width: 8),
+                  ],
                   // Favicon
                   Container(
                     width: 48,
@@ -203,8 +238,9 @@ class LinkCard extends StatelessWidget {
                   ),
                   // Actions
                   IconButton(
-                    icon: Icon(Icons.open_in_new_rounded, color: colorScheme.primary),
-                    onPressed: onTap,
+                    icon: Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, color: colorScheme.secondary),
+                    onPressed: onArchive,
+                    tooltip: link.isArchived ? 'Unarchive' : 'Archive',
                   ),
                   IconButton(
                     icon: Icon(Icons.edit_rounded, color: colorScheme.primary),

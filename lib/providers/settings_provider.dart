@@ -26,4 +26,11 @@ class SettingsProvider with ChangeNotifier {
     await StorageService.setCustomBackupPath(path);
     notifyListeners();
   }
+
+  Color get themeColor => Color(StorageService.themeColorValue);
+
+  Future<void> setThemeColor(Color color) async {
+    await StorageService.setThemeColorValue(color.value);
+    notifyListeners();
+  }
 }

@@ -7,6 +7,9 @@ class GridLinkCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onArchive;
+  final bool isSelected;
+  final VoidCallback? onLongPress;
   final ColorScheme colorScheme;
 
   const GridLinkCard({
@@ -15,7 +18,10 @@ class GridLinkCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    required this.onArchive,
     required this.colorScheme,
+    this.isSelected = false,
+    this.onLongPress,
   });
 
   void _showContextMenu(BuildContext context, Offset position) async {
@@ -61,6 +67,17 @@ class GridLinkCard extends StatelessWidget {
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
+          value: 'archive',
+          child: Row(
+            children: [
+              Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 20, color: colorScheme.secondary),
+              const SizedBox(width: 12),
+              Text(link.isArchived ? 'Unarchive' : 'Archive'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
@@ -89,6 +106,8 @@ class GridLinkCard extends StatelessWidget {
       }
     } else if (result == 'edit') {
       onEdit();
+    } else if (result == 'archive') {
+      onArchive();
     } else if (result == 'delete') {
       if (context.mounted) {
         _showDeleteDialog(context);
@@ -126,120 +145,143 @@ class GridLinkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: colorScheme.surfaceContainerLow,
+      elevation: isSelected ? 4 : 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isSelected ? colorScheme.primary : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      color: isSelected ? colorScheme.primaryContainer.withOpacity(0.3) : colorScheme.surfaceContainerLow,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: onTap,
+          onLongPress: onLongPress,
           onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Favicon
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: colorScheme.primaryContainer,
-                    ),
-                    child: link.faviconUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: Image.network(
-                              link.faviconUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _buildFallbackIcon(),
-                            ),
-                          )
-                        : _buildFallbackIcon(),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Title
-                        Flexible(
-                          flex: 2,
-                          child: Text(
-                            link.title,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        // URL
-                        Flexible(
-                          flex: 1,
-                          child: Text(
-                            Uri.parse(link.url).host,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorScheme.outline,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (link.description != null && link.description!.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Flexible(
-                            flex: 2,
-                            child: Text(
-                              link.description!,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: colorScheme.outline,
-                                fontStyle: FontStyle.italic,
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Actions
-                  Row(
+          child: Stack(
+            children: [
+              InkWell(
+                onTap: onTap,
+                onLongPress: onLongPress,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      IconButton(
-                        icon: Icon(Icons.open_in_new_rounded, size: 20, color: colorScheme.primary),
-                        onPressed: onTap,
-                        visualDensity: VisualDensity.compact,
+                      // Favicon
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: colorScheme.primaryContainer,
+                        ),
+                        child: link.faviconUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Image.network(
+                                  link.faviconUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => _buildFallbackIcon(),
+                                ),
+                              )
+                            : _buildFallbackIcon(),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.edit_rounded, size: 20, color: colorScheme.primary),
-                        onPressed: onEdit,
-                        visualDensity: VisualDensity.compact,
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Title
+                            Flexible(
+                              flex: 2,
+                              child: Text(
+                                link.title,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // URL
+                            Flexible(
+                              flex: 1,
+                              child: Text(
+                                Uri.parse(link.url).host,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.outline,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (link.description != null && link.description!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Flexible(
+                                flex: 2,
+                                child: Text(
+                                  link.description!,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: colorScheme.outline,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
-                        onPressed: () => _showDeleteDialog(context),
-                        visualDensity: VisualDensity.compact,
+                      const SizedBox(height: 8),
+                      // Actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 20, color: colorScheme.secondary),
+                            onPressed: onArchive,
+                            visualDensity: VisualDensity.compact,
+                            tooltip: link.isArchived ? 'Unarchive' : 'Archive',
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.edit_rounded, size: 20, color: colorScheme.primary),
+                            onPressed: onEdit,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
+                            onPressed: () => _showDeleteDialog(context),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+              if (onLongPress != null)
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: (_) => onLongPress!(),
+                    shape: const CircleBorder(),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

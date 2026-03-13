@@ -25,6 +25,15 @@ class LinkItem {
   @HiveField(6)
   final int timestamp;
 
+  @HiveField(7)
+  final bool isArchived;
+
+  @HiveField(8)
+  final int clickCount;
+
+  @HiveField(9)
+  final List<String> tags;
+
   LinkItem({
     required this.id,
     required this.title,
@@ -32,8 +41,14 @@ class LinkItem {
     this.description,
     this.faviconUrl,
     this.category,
+    bool? isArchived,
+    int? clickCount,
+    List<String>? tags,
     int? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
+  })  : isArchived = isArchived ?? false,
+        clickCount = clickCount ?? 0,
+        tags = tags ?? const [],
+        timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
 
   Map<String, dynamic> toJson() {
     return {
@@ -44,6 +59,9 @@ class LinkItem {
       'faviconUrl': faviconUrl,
       'category': category,
       'timestamp': timestamp,
+      'isArchived': isArchived,
+      'clickCount': clickCount,
+      'tags': tags,
     };
   }
 
@@ -56,6 +74,9 @@ class LinkItem {
       faviconUrl: json['faviconUrl'] as String?,
       category: json['category'] as String?,
       timestamp: json['timestamp'] as int?,
+      isArchived: json['isArchived'] as bool? ?? false,
+      clickCount: json['clickCount'] as int? ?? 0,
+      tags: (json['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 }
