@@ -6,6 +6,7 @@ class SettingsProvider with ChangeNotifier {
   bool get isDarkMode => StorageService.isDarkMode;
   int get backupIntervalHours => StorageService.backupIntervalHours;
   String? get customBackupPath => StorageService.customBackupPath;
+  DateTime? get lastBackupTime => StorageService.lastBackupTime;
 
   Future<void> toggleGridView(bool value) async {
     await StorageService.setGridView(value);
@@ -31,6 +32,10 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> setThemeColor(Color color) async {
     await StorageService.setThemeColorValue(color.value);
+    notifyListeners();
+  }
+
+  void refresh() {
     notifyListeners();
   }
 }

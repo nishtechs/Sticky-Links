@@ -59,6 +59,7 @@ class BackupService {
       final file = File(p.join(targetDirectory.path, 'backup.json'));
       await file.writeAsString(jsonString);
 
+      await StorageService.setLastBackupTime(DateTime.now());
       debugPrint('Automated backup successful: ${file.path}');
     } catch (e) {
       debugPrint('Failed to perform automated backup: $e');

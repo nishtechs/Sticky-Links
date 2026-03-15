@@ -73,4 +73,14 @@ class StorageService {
 
   static int get themeColorValue => settingsBox.get('themeColorValue', defaultValue: 0xFF6366F1);
   static Future<void> setThemeColorValue(int value) async => await settingsBox.put('themeColorValue', value);
+
+  static DateTime? get lastBackupTime {
+    final value = settingsBox.get('lastBackupTime');
+    if (value == null) return null;
+    return DateTime.parse(value);
+  }
+
+  static Future<void> setLastBackupTime(DateTime value) async {
+    await settingsBox.put('lastBackupTime', value.toIso8601String());
+  }
 }

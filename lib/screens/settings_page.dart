@@ -266,6 +266,32 @@ class SettingsPage extends StatelessWidget {
                   );
                 },
               ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.history_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                ),
+                title: const Text('Last Backup'),
+                subtitle: Text(
+                  settings.lastBackupTime == null
+                      ? 'Never'
+                      : '${settings.lastBackupTime!.day}/${settings.lastBackupTime!.month}/${settings.lastBackupTime!.year} at '
+                          '${settings.lastBackupTime!.hour.toString().padLeft(2, '0')}:${settings.lastBackupTime!.minute.toString().padLeft(2, '0')}',
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  tooltip: 'Backup Now',
+                  onPressed: () async {
+                    await BackupService.triggerManualBackup();
+                    settings.refresh();
+                  },
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
