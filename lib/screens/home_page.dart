@@ -19,6 +19,11 @@ import '../services/storage_service.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'settings_page.dart';
+import '../services/metadata_service.dart';
+import '../widgets/dynamic_background.dart';
+import '../widgets/glass_container.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'whats_new_page.dart';
 
 class StickyLinksHomePage extends StatefulWidget {
   const StickyLinksHomePage({super.key});
@@ -44,7 +49,19 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LinksProvider>().loadLinks();
-      if (!StorageService.hasShownTutorial) {
+      final settings = context.read<SettingsProvider>();
+      
+      if (!settings.isWhatsNewSeen) {
+         Navigator.of(context).push(
+           PageRouteBuilder(
+             pageBuilder: (context, _, __) => const WhatsNewPage(),
+             transitionsBuilder: (context, animation, secondaryAnimation, child) {
+               return FadeTransition(opacity: animation, child: child);
+             },
+             transitionDuration: const Duration(milliseconds: 600),
+           ),
+         );
+      } else if (!StorageService.hasShownTutorial) {
         ShowCaseWidget.of(context).startShowCase([_addKey, _searchKey, _settingsKey]);
         StorageService.setHasShownTutorial(true);
       }
@@ -276,6 +293,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     _categories = context.read<LinksProvider>().categories;
     _selectedDialogCategory = existingLink?.category;
 
+    List<String> dialogTags = existingLink?.tags != null ? List<String>.from(existingLink!.tags) : [];
+    final tagController = TextEditingController();
+    bool isFetching = false;
+    String? currentPreviewUrl = existingLink?.previewImageUrl;
+
     if (isEditing) {
       _titleController.text = existingLink.title;
       _urlController.text = existingLink.url;
@@ -335,26 +357,61 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _urlController,
-                  decoration: InputDecoration(
-                    labelText: 'URL',
-                    hintText: 'Enter website URL',
-                    prefixIcon: const Icon(Icons.link_rounded),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                Stack(
+                  alignment: Alignment.centerRight,
+                  children: [
+                    TextFormField(
+                      controller: _urlController,
+                      decoration: InputDecoration(
+                        labelText: 'URL',
+                        hintText: 'Enter website URL',
+                        prefixIcon: const Icon(Icons.link_rounded),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.only(right: 100, left: 12, top: 12, bottom: 12),
+                      ),
+                      keyboardType: TextInputType.url,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a URL';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                  keyboardType: TextInputType.url,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a URL';
-                    }
-                    return null;
-                  },
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: isFetching 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : TextButton.icon(
+                          onPressed: () async {
+                             String url = _urlController.text.trim();
+                             if (url.isEmpty) return;
+                             setStateLocal(() => isFetching = true);
+                             final meta = await MetadataService.fetchMetadata(url);
+                             setStateLocal(() {
+                               if (meta['title'] != null && _titleController.text.isEmpty) {
+                                 _titleController.text = meta['title']!;
+                               }
+                               if (meta['description'] != null && _descriptionController.text.isEmpty) {
+                                 _descriptionController.text = meta['description']!;
+                               }
+                               currentPreviewUrl = meta['previewImageUrl'];
+                               isFetching = false;
+                             });
+                          }, 
+                          icon: const Icon(Icons.auto_awesome, size: 16),
+                          label: const Text('Fetch'),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                          ),
+                        ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -399,6 +456,50 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                     }
                   },
                 ),
+                const SizedBox(height: 16),
+                // Tagging UI
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: tagController,
+                      decoration: InputDecoration(
+                        labelText: 'Add Tags',
+                        hintText: 'Press Enter to add tag',
+                        prefixIcon: const Icon(Icons.label_outline_rounded),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onFieldSubmitted: (value) {
+                        if (value.trim().isNotEmpty && !dialogTags.contains(value.trim())) {
+                          setStateLocal(() {
+                            dialogTags.add(value.trim());
+                            tagController.clear();
+                          });
+                        }
+                      },
+                    ),
+                    if (dialogTags.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: dialogTags.map((tag) => Chip(
+                          label: Text(tag, style: const TextStyle(fontSize: 12)),
+                          onDeleted: () {
+                            setStateLocal(() => dialogTags.remove(tag));
+                          },
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                        )).toList(),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
@@ -409,7 +510,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: () => _saveLink(existingLink: existingLink),
+            onPressed: () => _saveLink(
+              existingLink: existingLink, 
+              tags: dialogTags,
+              previewUrl: currentPreviewUrl,
+            ),
             icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
             label: Text(isEditing ? 'Save' : 'Add Link'),
           ),
@@ -419,7 +524,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  void _saveLink({LinkItem? existingLink}) async {
+  void _saveLink({LinkItem? existingLink, List<String>? tags, String? previewUrl}) async {
     if (_formKey.currentState!.validate()) {
       String fullUrl = _urlController.text.trim();
 
@@ -428,8 +533,12 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       }
 
       String? faviconUrl = existingLink?.faviconUrl;
+      String? currentPreviewUrl = previewUrl ?? existingLink?.previewImageUrl;
+
       if (existingLink == null || existingLink.url != fullUrl) {
-         faviconUrl = await _fetchFaviconUrl(fullUrl);
+         final meta = await MetadataService.fetchMetadata(fullUrl);
+         faviconUrl = meta['faviconUrl'] ?? await _fetchFaviconUrl(fullUrl);
+         currentPreviewUrl = previewUrl ?? meta['previewImageUrl'];
       }
 
       final provider = context.read<LinksProvider>();
@@ -457,6 +566,8 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           faviconUrl: faviconUrl,
           category: _selectedDialogCategory,
+          tags: tags ?? [],
+          previewImageUrl: currentPreviewUrl,
         );
         await provider.addLink(newLink);
       } else {
@@ -468,6 +579,8 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           faviconUrl: faviconUrl,
           category: _selectedDialogCategory ?? existingLink.category,
           timestamp: existingLink.timestamp,
+          tags: tags ?? existingLink.tags,
+          previewImageUrl: currentPreviewUrl,
         );
         await provider.updateLink(updatedLink);
       }
@@ -611,70 +724,113 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             }
           },
         },
-        child: Column(
-          children: [
-            // Search Bar
-            Showcase(
-              key: _searchKey,
-              title: 'Search & Filter',
-              description: 'Find your saved links easily, and filter by categories below.',
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: TextField(
-                  focusNode: _searchFocusNode,
-                  onChanged: linksProvider.setSearchQuery,
-                  decoration: InputDecoration(
-                    hintText: 'Search links... (Ctrl+F)',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    filled: true,
-                    fillColor: colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+        child: DropTarget(
+          onDragDone: (details) async {
+            final provider = context.read<LinksProvider>();
+            for (final file in details.files) {
+               final path = file.path;
+               if (path.startsWith('http')) {
+                  final meta = await MetadataService.fetchMetadata(path);
+                  final newLink = LinkItem(
+                    id: const Uuid().v4(),
+                    title: meta['title'] ?? path,
+                    url: path,
+                    description: meta['description'],
+                    faviconUrl: meta['faviconUrl'],
+                    previewImageUrl: meta['previewImageUrl'],
+                    category: linksProvider.selectedCategory == 'All' ? null : linksProvider.selectedCategory,
+                  );
+                  await provider.addLink(newLink);
+               }
+            }
+          },
+          child: DynamicBackground(
+          isEnabled: settings.isDynamicBackgroundEnabled,
+          seedColor: settings.themeColor,
+          child: Column(
+            children: [
+              // Search Bar
+              Showcase(
+                key: _searchKey,
+                title: 'Search & Filter',
+                description: 'Find your saved links easily, and filter by categories below.',
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: GlassContainer(
+                    isEnabled: settings.isGlassEnabled,
+                    opacity: 0.05,
+                    child: TextField(
+                      focusNode: _searchFocusNode,
+                      onChanged: linksProvider.setSearchQuery,
+                      decoration: InputDecoration(
+                        hintText: 'Search links... (Ctrl+F)',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        filled: false, // Turn off filled since we have glass
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
                 ),
               ),
-            ),
-            // Categories Scrollable Row
-            SizedBox(
-              height: 55,
-              child: Scrollbar(
-                controller: _categoryScrollController,
-                thickness: 4.0,
-                radius: const Radius.circular(10),
-                child: ListView.builder(
+              // Categories Scrollable Row
+              SizedBox(
+                height: 55,
+                child: Scrollbar(
                   controller: _categoryScrollController,
-                  scrollDirection: Axis.horizontal,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  itemCount: linksProvider.categories.length,
-                  itemBuilder: (context, index) {
-                    final cat = linksProvider.categories[index];
-                    final isSelected = (linksProvider.selectedCategory ?? 'All') == cat;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onSecondaryTapDown: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
-                        child: ChoiceChip(
-                          label: Text(cat),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            linksProvider.setCategory(cat);
+                  thickness: 4.0,
+                  radius: const Radius.circular(10),
+                  child: ListView.builder(
+                    controller: _categoryScrollController,
+                    scrollDirection: Axis.horizontal,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    itemCount: linksProvider.categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = linksProvider.categories[index];
+                      final isSelected = (linksProvider.selectedCategory ?? 'All') == cat;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: DragTarget<String>(
+                          onWillAccept: (data) => data != null,
+                          onAccept: (linkId) {
+                             linksProvider.moveLinkToCategory(linkId, cat == 'All' ? null : cat);
+                             ScaffoldMessenger.of(context).showSnackBar(
+                               SnackBar(content: Text('Moved link to $cat'), behavior: SnackBarBehavior.floating),
+                             );
                           },
-                          selectedColor: colorScheme.primaryContainer,
-                          labelStyle: TextStyle(
-                            color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
+                          builder: (context, candidateData, rejectedData) {
+                            return GestureDetector(
+                              onSecondaryTapDown: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
+                              child: GlassContainer(
+                                isEnabled: (settings.isGlassEnabled && isSelected) || candidateData.isNotEmpty,
+                                opacity: candidateData.isNotEmpty ? 0.4 : 0.2,
+                                borderRadius: 18,
+                                child: ChoiceChip(
+                                  label: Text(cat),
+                                  selected: isSelected,
+                                  side: BorderSide.none, 
+                                  onSelected: (selected) {
+                                    linksProvider.setCategory(cat);
+                                  },
+                                  selectedColor: candidateData.isNotEmpty ? colorScheme.primary.withOpacity(0.3) : (settings.isGlassEnabled ? Colors.transparent : colorScheme.primaryContainer),
+                                  labelStyle: TextStyle(
+                                    color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
             // Links Section Header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -760,7 +916,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
+    ),
+  ),
+  bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
           ? _buildBulkActionBar(colorScheme, linksProvider)
           : null,
       floatingActionButton: linksProvider.selectedIds.isNotEmpty ? null : Showcase(
@@ -864,15 +1022,44 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
               child: FadeInAnimation(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: LinkCard(
-                    link: link,
-                    onTap: () => _openLink(link.url),
-                    onEdit: () => _showLinkDialog(existingLink: link),
-                    onDelete: () => provider.removeLink(link.id),
-                    onArchive: () => provider.archiveLink(link.id, !link.isArchived),
-                    isSelected: provider.selectedIds.contains(link.id),
-                    onLongPress: () => provider.toggleSelection(link.id),
-                    colorScheme: colorScheme,
+                  child: Draggable<String>(
+                    data: link.id,
+                    feedback: Material(
+                      elevation: 4,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: 300,
+                        child: LinkCard(
+                          link: link,
+                          onTap: () {},
+                          onEdit: () {},
+                          onDelete: () {},
+                          onArchive: () {},
+                          colorScheme: colorScheme,
+                        ),
+                      ),
+                    ),
+                    childWhenDragging: Opacity(
+                      opacity: 0.3,
+                      child: LinkCard(
+                        link: link,
+                        onTap: () {},
+                        onEdit: () {},
+                        onDelete: () {},
+                        onArchive: () {},
+                        colorScheme: colorScheme,
+                      ),
+                    ),
+                    child: LinkCard(
+                      link: link,
+                      onTap: () => _openLink(link.url),
+                      onEdit: () => _showLinkDialog(existingLink: link),
+                      onDelete: () => provider.removeLink(link.id),
+                      onArchive: () => provider.archiveLink(link.id, !link.isArchived),
+                      isSelected: provider.selectedIds.contains(link.id),
+                      onLongPress: () => provider.toggleSelection(link.id),
+                      colorScheme: colorScheme,
+                    ),
                   ),
                 ),
               ),

@@ -53,6 +53,14 @@ dependencies:
   flutter_staggered_animations: ^1.1.1
   path: ^1.9.1
   showcaseview: ^5.0.1
+  cached_network_image: ^3.4.1
+  lottie: ^3.1.2
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  html: ^0.15.5
+  flutter_widget_from_html: ^0.15.2
+  logger: ^2.5.0
+  desktop_drop: ^0.5.0
 
 dev_dependencies:
   flutter_test:

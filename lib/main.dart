@@ -5,6 +5,7 @@ import 'package:showcaseview/showcaseview.dart';
 
 import 'services/storage_service.dart';
 import 'services/backup_service.dart';
+import 'services/server_service.dart';
 import 'providers/settings_provider.dart';
 import 'providers/links_provider.dart';
 import 'screens/home_page.dart';
@@ -15,21 +16,27 @@ void main() async {
   // Initialize local DB and settings
   await StorageService.init();
 
+  final linksProvider = LinksProvider();
+  final settingsProvider = SettingsProvider();
+
   // Start the background backup scheduler
   BackupService.startScheduler();
 
+  // Start local server for external communication
+  ServerService.start(linksProvider);
+  
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
-        ChangeNotifierProvider(create: (_) => LinksProvider()),
+        ChangeNotifierProvider.value(value: settingsProvider),
+        ChangeNotifierProvider.value(value: linksProvider),
       ],
       child: const StickyLinksApp(),
     ),
   );
 
   doWhenWindowReady(() {
-    const initialSize = Size(1000, 700);
+    const initialSize = Size(1100, 750);
     appWindow.minSize = const Size(600, 400);
     appWindow.size = initialSize;
     appWindow.alignment = Alignment.center;

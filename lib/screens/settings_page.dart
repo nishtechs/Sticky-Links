@@ -9,16 +9,14 @@ import '../providers/links_provider.dart';
 import '../models/link_item.dart';
 import '../widgets/window_buttons.dart';
 import '../services/backup_service.dart';
+import '../services/bookmark_service.dart';
+import 'whats_new_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   Future<void> _exportData(BuildContext context) async {
     final linksProvider = Provider.of<LinksProvider>(context, listen: false);
-    // Use raw links, not the filtered/sorted links.
-    // Provider exposes links which are filtered. Let's add an allLinks getter or just export them.
-    // Wait, LinksProvider exposes 'links' which applies search filters. We want to export ALL links.
-    // We should add `allLinks` to provider, but for now we'll just pull `linksProvider.allLinks`
     List<LinkItem> all = linksProvider.allLinks;
     final jsonList = all.map((link) => link.toJson()).toList();
     final jsonString = jsonEncode(jsonList);
@@ -55,9 +53,9 @@ class SettingsPage extends StatelessWidget {
         final linksProvider = Provider.of<LinksProvider>(context, listen: false);
         
         final importedLinks = jsonList.map((item) => LinkItem.fromJson(item)).toList();
-        final result = await linksProvider.importLinks(importedLinks);
-        final added = result['added'] ?? 0;
-        final updated = result['updated'] ?? 0;
+        final importResult = await linksProvider.importLinks(importedLinks);
+        final added = importResult['added'] ?? 0;
+        final updated = importResult['updated'] ?? 0;
 
         if (context.mounted) {
           String message = 'Import complete! Added $added new links.';
@@ -76,6 +74,37 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
+  Future<void> _importBookmarks(BuildContext context) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['html', 'htm'],
+    );
+
+    if (result != null) {
+      final file = File(result.files.single.path!);
+      final content = await file.readAsString();
+      try {
+        final List<LinkItem> importedLinks = BookmarkService.parseBookmarkHtml(content);
+        final linksProvider = Provider.of<LinksProvider>(context, listen: false);
+        
+        final importResult = await linksProvider.importLinks(importedLinks);
+        final added = importResult['added'] ?? 0;
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Import complete! Added $added new links from bookmarks.')),
+          );
+        }
+      } catch (e) {
+         if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Failed to parse bookmark file.')),
+           );
+         }
+      }
+    }
+  }
+
   Future<void> _pickBackupPath(BuildContext context) async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
@@ -84,7 +113,7 @@ class SettingsPage extends StatelessWidget {
 
     if (selectedDirectory != null) {
       await settings.setCustomBackupPath(selectedDirectory);
-      BackupService.updateScheduler(); // Re-trigger initial backup sequence
+      BackupService.updateScheduler();
     }
   }
 
@@ -138,6 +167,48 @@ class SettingsPage extends StatelessWidget {
                 subtitle: 'Use dark theme',
                 value: settings.isDarkMode,
                 onChanged: (value) => settings.toggleDarkMode(value),
+                colorScheme: colorScheme,
+              ),
+              const Divider(height: 1),
+              _buildSwitchTile(
+                icon: Icons.blur_on_rounded,
+                title: 'Glassmorphism',
+                subtitle: 'Enable frosted glass effects',
+                value: settings.isGlassEnabled,
+                onChanged: (value) => settings.toggleGlassEnabled(value),
+                colorScheme: colorScheme,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.auto_awesome_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                ),
+                title: const Text("What's New"),
+                subtitle: const Text("View latest features and updates"),
+                onTap: () {
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (context, _, __) => const WhatsNewPage(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                      transitionDuration: const Duration(milliseconds: 600),
+                    ),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              _buildSwitchTile(
+                icon: Icons.animation_rounded,
+                title: 'Dynamic Background',
+                subtitle: 'Animated mesh gradient background',
+                value: settings.isDynamicBackgroundEnabled,
+                onChanged: (value) => settings.toggleDynamicBackground(value),
                 colorScheme: colorScheme,
               ),
               const Divider(height: 1),
@@ -213,6 +284,20 @@ class SettingsPage extends StatelessWidget {
                 title: const Text('Import Data'),
                 subtitle: const Text('Load links from a file'),
                 onTap: () => _importData(context),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.bookmark_added_rounded, color: colorScheme.onPrimaryContainer, size: 20),
+                ),
+                title: const Text('Import Bookmarks'),
+                subtitle: const Text('Import from Chrome/Firefox HTML'),
+                onTap: () => _importBookmarks(context),
               ),
               const Divider(height: 1),
               ListTile(
@@ -312,6 +397,17 @@ class SettingsPage extends StatelessWidget {
                 ),
                 title: const Text('Sticky Links'),
                 subtitle: const Text('Version 2.0.0'),
+                onTap: () {
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (context, _, __) => const WhatsNewPage(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                      transitionDuration: const Duration(milliseconds: 600),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -428,4 +524,3 @@ class _ColorOption extends StatelessWidget {
     );
   }
 }
-

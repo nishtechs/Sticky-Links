@@ -89,15 +89,19 @@ class LinksProvider with ChangeNotifier {
         
         // Update all links with this category
         for (var link in _links.where((l) => l.category == oldName)) {
-           final updatedLink = LinkItem(
-             id: link.id,
-             title: link.title,
-             url: link.url,
-             description: link.description,
-             faviconUrl: link.faviconUrl,
-             category: newName,
-             timestamp: link.timestamp,
-           );
+          final updatedLink = LinkItem(
+            id: link.id,
+            title: link.title,
+            url: link.url,
+            description: link.description,
+            faviconUrl: link.faviconUrl,
+            category: newName,
+            timestamp: link.timestamp,
+            tags: link.tags,
+            previewImageUrl: link.previewImageUrl,
+            isArchived: link.isArchived,
+            clickCount: link.clickCount,
+          );
            await StorageService.addLink(updatedLink);
         }
 
@@ -173,6 +177,31 @@ class LinksProvider with ChangeNotifier {
         isArchived: archive,
         clickCount: old.clickCount,
         tags: old.tags,
+        previewImageUrl: old.previewImageUrl,
+      );
+      await StorageService.addLink(updated);
+      _links[index] = updated;
+      notifyListeners();
+      BackupService.triggerManualBackup();
+    }
+  }
+
+  Future<void> moveLinkToCategory(String id, String? newCategory) async {
+    int index = _links.indexWhere((l) => l.id == id);
+    if (index != -1) {
+      final old = _links[index];
+      final updated = LinkItem(
+        id: old.id,
+        title: old.title,
+        url: old.url,
+        description: old.description,
+        faviconUrl: old.faviconUrl,
+        category: newCategory,
+        timestamp: old.timestamp,
+        isArchived: old.isArchived,
+        clickCount: old.clickCount,
+        tags: old.tags,
+        previewImageUrl: old.previewImageUrl,
       );
       await StorageService.addLink(updated);
       _links[index] = updated;
@@ -196,6 +225,7 @@ class LinksProvider with ChangeNotifier {
         isArchived: old.isArchived,
         clickCount: old.clickCount + 1,
         tags: old.tags,
+        previewImageUrl: old.previewImageUrl,
       );
       await StorageService.addLink(updated);
       _links[index] = updated;

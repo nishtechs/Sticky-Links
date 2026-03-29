@@ -34,6 +34,9 @@ class LinkItem {
   @HiveField(9)
   final List<String> tags;
 
+  @HiveField(10)
+  final String? previewImageUrl;
+
   LinkItem({
     required this.id,
     required this.title,
@@ -41,6 +44,7 @@ class LinkItem {
     this.description,
     this.faviconUrl,
     this.category,
+    this.previewImageUrl,
     bool? isArchived,
     int? clickCount,
     List<String>? tags,
@@ -58,6 +62,7 @@ class LinkItem {
       'description': description,
       'faviconUrl': faviconUrl,
       'category': category,
+      'previewImageUrl': previewImageUrl,
       'timestamp': timestamp,
       'isArchived': isArchived,
       'clickCount': clickCount,
@@ -73,6 +78,7 @@ class LinkItem {
       description: json['description'] as String?,
       faviconUrl: json['faviconUrl'] as String?,
       category: json['category'] as String?,
+      previewImageUrl: json['previewImageUrl'] as String?,
       timestamp: json['timestamp'] as int?,
       isArchived: json['isArchived'] as bool? ?? false,
       clickCount: json['clickCount'] as int? ?? 0,

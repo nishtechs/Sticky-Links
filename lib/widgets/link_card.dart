@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/link_item.dart';
+import '../screens/reader_page.dart';
+import '../widgets/glass_container.dart';
+import '../providers/settings_provider.dart';
+import 'package:provider/provider.dart';
 
 class LinkCard extends StatelessWidget {
   final LinkItem link;
@@ -112,6 +117,13 @@ class LinkCard extends StatelessWidget {
       if (context.mounted) {
         _showDeleteDialog(context);
       }
+    } else if (result == 'reader') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReaderPage(url: link.url, title: link.title),
+        ),
+      );
     }
   }
 
@@ -144,16 +156,24 @@ class LinkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: isSelected ? 4 : 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected ? colorScheme.primary : Colors.transparent,
-          width: 2,
+    final settings = context.watch<SettingsProvider>();
+    
+    return GlassContainer(
+      isEnabled: settings.isGlassEnabled,
+      borderRadius: 16,
+      opacity: 0.1,
+      child: Card(
+        elevation: isSelected ? 4 : 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isSelected ? colorScheme.primary : (settings.isGlassEnabled ? Colors.white12 : Colors.transparent),
+            width: 2,
+          ),
         ),
-      ),
-      color: isSelected ? colorScheme.primaryContainer.withOpacity(0.3) : colorScheme.surfaceContainerLow,
+        color: isSelected 
+            ? colorScheme.primaryContainer.withOpacity(0.3) 
+            : (settings.isGlassEnabled ? Colors.transparent : colorScheme.surfaceContainerLow),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
@@ -187,15 +207,37 @@ class LinkCard extends StatelessWidget {
                     child: link.faviconUrl != null
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              link.faviconUrl!,
+                            child: CachedNetworkImage(
+                              imageUrl: link.faviconUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _buildFallbackIcon(),
+                              placeholder: (context, url) => Container(color: colorScheme.surfaceVariant),
+                              errorWidget: (_, __, ___) => _buildFallbackIcon(),
                             ),
                           )
                         : _buildFallbackIcon(),
                   ),
                   const SizedBox(width: 16),
+                  // Preview Image (if available)
+                  if (link.previewImageUrl != null) ...[
+                     Container(
+                       width: 80,
+                       height: 50,
+                       decoration: BoxDecoration(
+                         borderRadius: BorderRadius.circular(8),
+                         color: colorScheme.surfaceVariant,
+                       ),
+                       child: ClipRRect(
+                         borderRadius: BorderRadius.circular(8),
+                         child: CachedNetworkImage(
+                           imageUrl: link.previewImageUrl!,
+                           fit: BoxFit.cover,
+                           placeholder: (context, url) => const Icon(Icons.image, size: 20, color: Colors.grey),
+                           errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                         ),
+                       ),
+                     ),
+                     const SizedBox(width: 12),
+                  ],
                   // Content
                   Expanded(
                     child: Column(
@@ -246,11 +288,12 @@ class LinkCard extends StatelessWidget {
                     icon: Icon(Icons.edit_rounded, color: colorScheme.primary),
                     onPressed: onEdit,
                   ),
-                  IconButton(
-                    icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
-                    onPressed: () => _showDeleteDialog(context),
-                  ),
-                ],
+                    IconButton(
+                      icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
+                      onPressed: () => _showDeleteDialog(context),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

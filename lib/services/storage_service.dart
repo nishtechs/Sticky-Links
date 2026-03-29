@@ -74,6 +74,12 @@ class StorageService {
   static int get themeColorValue => settingsBox.get('themeColorValue', defaultValue: 0xFF6366F1);
   static Future<void> setThemeColorValue(int value) async => await settingsBox.put('themeColorValue', value);
 
+  static bool get isGlassEnabled => settingsBox.get('isGlassEnabled', defaultValue: true);
+  static Future<void> setGlassEnabled(bool value) async => await settingsBox.put('isGlassEnabled', value);
+
+  static bool get isDynamicBackgroundEnabled => settingsBox.get('isDynamicBackgroundEnabled', defaultValue: true);
+  static Future<void> setDynamicBackgroundEnabled(bool value) async => await settingsBox.put('isDynamicBackgroundEnabled', value);
+
   static DateTime? get lastBackupTime {
     final value = settingsBox.get('lastBackupTime');
     if (value == null) return null;
@@ -83,4 +89,7 @@ class StorageService {
   static Future<void> setLastBackupTime(DateTime value) async {
     await settingsBox.put('lastBackupTime', value.toIso8601String());
   }
+
+  static bool get isWhatsNewSeen => settingsBox.get('isWhatsNewSeen_v2', defaultValue: false);
+  static Future<void> setWhatsNewSeen(bool value) async => await settingsBox.put('isWhatsNewSeen_v2', value);
 }
