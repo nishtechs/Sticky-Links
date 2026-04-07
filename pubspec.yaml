@@ -76,6 +76,7 @@ dev_dependencies:
   hive_generator: ^2.0.1
   flutter_launcher_icons: ^0.14.4
   msix: ^3.16.13
+  inno_bundle: ^0.11.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -137,3 +138,8 @@ msix_config:
   logo_path: app_logo.png
   capabilities: internetClient
 
+inno_bundle:
+  id: ea2da1d0-3269-11f1-a5b4-05e8f4fee515
+  publisher: nisha
+  languages:
+    - english
