@@ -11,7 +11,7 @@ class LinksProvider with ChangeNotifier {
   String? _selectedCategory;
   String _sortOrder = 'newest'; // newest, oldest, alphabetical, most_clicked
   bool _showArchived = false;
-  List<String> _selectedIds = [];
+  final List<String> _selectedIds = [];
 
   List<LinkItem> get allLinks => _links;
   bool get showArchived => _showArchived;
@@ -72,7 +72,7 @@ class LinksProvider with ChangeNotifier {
   Future<void> addCategory(String name, {bool notify = true}) async {
     final trimmedName = name.trim();
     if (trimmedName.isNotEmpty && !_categories.contains(trimmedName)) {
-      final newCat = CategoryItem(id: const Uuid().v4(), name: trimmedName, colorValue: Colors.blue.value);
+      final newCat = CategoryItem(id: const Uuid().v4(), name: trimmedName, colorValue: Colors.blue.toARGB32());
       await StorageService.addCategory(newCat);
       _categories.add(trimmedName);
       if (notify) notifyListeners();

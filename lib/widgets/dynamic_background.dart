@@ -72,10 +72,10 @@ class MeshPainter extends CustomPainter {
     final paint = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 100);
 
     final List<Color> colors = [
-      color.withOpacity(isDark ? 0.3 : 0.2),
-      color.withOpacity(isDark ? 0.2 : 0.1),
-      Colors.blue.withOpacity(isDark ? 0.15 : 0.1),
-      Colors.purple.withOpacity(isDark ? 0.15 : 0.1),
+      color.withValues(alpha: isDark ? 0.3 : 0.2),
+      color.withValues(alpha: isDark ? 0.2 : 0.1),
+      Colors.blue.withValues(alpha: isDark ? 0.15 : 0.1),
+      Colors.purple.withValues(alpha: isDark ? 0.15 : 0.1),
     ];
 
     for (int i = 0; i < 4; i++) {

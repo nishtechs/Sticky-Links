@@ -48,13 +48,14 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       context.read<LinksProvider>().loadLinks();
       final settings = context.read<SettingsProvider>();
       
       if (!settings.isWhatsNewSeen) {
          Navigator.of(context).push(
            PageRouteBuilder(
-             pageBuilder: (context, _, __) => const WhatsNewPage(),
+             pageBuilder: (context, _, _) => const WhatsNewPage(),
              transitionsBuilder: (context, animation, secondaryAnimation, child) {
                return FadeTransition(opacity: animation, child: child);
              },
@@ -62,7 +63,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
            ),
          );
       } else if (!StorageService.hasShownTutorial) {
-        ShowCaseWidget.of(context).startShowCase([_addKey, _searchKey, _settingsKey]);
+        ShowcaseView.get().startShowCase([_addKey, _searchKey, _settingsKey]);
         StorageService.setHasShownTutorial(true);
       }
     });
@@ -407,7 +408,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                           label: const Text('Fetch'),
                           style: TextButton.styleFrom(
                             visualDensity: VisualDensity.compact,
-                            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
                           ),
                         ),
                     ),
@@ -431,7 +432,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _categories.contains(_selectedDialogCategory) ? _selectedDialogCategory : 'All',
+                  initialValue: _categories.contains(_selectedDialogCategory) ? _selectedDialogCategory : 'All',
                   decoration: InputDecoration(
                     labelText: 'Category',
                     prefixIcon: const Icon(Icons.category_rounded),
@@ -537,10 +538,13 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
       if (existingLink == null || existingLink.url != fullUrl) {
          final meta = await MetadataService.fetchMetadata(fullUrl);
+         if (!mounted) return;
          faviconUrl = meta['faviconUrl'] ?? await _fetchFaviconUrl(fullUrl);
+         if (!mounted) return;
          currentPreviewUrl = previewUrl ?? meta['previewImageUrl'];
       }
 
+      if (!mounted) return;
       final provider = context.read<LinksProvider>();
 
       if (existingLink == null) {
@@ -777,8 +781,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                 ),
               ),
               // Categories Scrollable Row
-              SizedBox(
-                height: 55,
+              Container(
+                height: 60,
+                margin: const EdgeInsets.symmetric(vertical: 4),
                 child: Scrollbar(
                   controller: _categoryScrollController,
                   thickness: 4.0,
@@ -786,40 +791,98 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                   child: ListView.builder(
                     controller: _categoryScrollController,
                     scrollDirection: Axis.horizontal,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: linksProvider.categories.length,
                     itemBuilder: (context, index) {
                       final cat = linksProvider.categories[index];
                       final isSelected = (linksProvider.selectedCategory ?? 'All') == cat;
+                      
                       return Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: 12),
                         child: DragTarget<String>(
-                          onWillAccept: (data) => data != null,
-                          onAccept: (linkId) {
+                          onWillAcceptWithDetails: (details) => true,
+                          onAcceptWithDetails: (details) {
+                             final linkId = details.data;
                              linksProvider.moveLinkToCategory(linkId, cat == 'All' ? null : cat);
                              ScaffoldMessenger.of(context).showSnackBar(
-                               SnackBar(content: Text('Moved link to $cat'), behavior: SnackBarBehavior.floating),
+                               SnackBar(
+                                 content: Text('Moved link to $cat'), 
+                                 behavior: SnackBarBehavior.floating,
+                                 width: 250,
+                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                               ),
                              );
                           },
                           builder: (context, candidateData, rejectedData) {
+                            bool isHovered = candidateData.isNotEmpty;
+                            
                             return GestureDetector(
+                              onTap: () => linksProvider.setCategory(cat),
                               onSecondaryTapDown: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
-                              child: GlassContainer(
-                                isEnabled: (settings.isGlassEnabled && isSelected) || candidateData.isNotEmpty,
-                                opacity: candidateData.isNotEmpty ? 0.4 : 0.2,
-                                borderRadius: 18,
-                                child: ChoiceChip(
-                                  label: Text(cat),
-                                  selected: isSelected,
-                                  side: BorderSide.none, 
-                                  onSelected: (selected) {
-                                    linksProvider.setCategory(cat);
-                                  },
-                                  selectedColor: candidateData.isNotEmpty ? colorScheme.primary.withOpacity(0.3) : (settings.isGlassEnabled ? Colors.transparent : colorScheme.primaryContainer),
-                                  labelStyle: TextStyle(
-                                    color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOut,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(25),
+                                  gradient: isSelected 
+                                    ? LinearGradient(
+                                        colors: [
+                                          colorScheme.primary,
+                                          colorScheme.primary.withBlue(200).withGreen(150),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                    : null,
+                                  color: !isSelected 
+                                    ? (isHovered 
+                                        ? colorScheme.primaryContainer.withValues(alpha: 0.4) 
+                                        : colorScheme.surfaceContainerHighest.withValues(alpha: settings.isGlassEnabled ? 0.3 : 0.8))
+                                    : null,
+                                  boxShadow: isSelected ? [
+                                    BoxShadow(
+                                      color: colorScheme.primary.withValues(alpha: 0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ] : (isHovered ? [
+                                     BoxShadow(
+                                      color: colorScheme.primary.withValues(alpha: 0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ] : []),
+                                  border: Border.all(
+                                    color: isSelected 
+                                      ? colorScheme.primary.withValues(alpha: 0.5)
+                                      : (isHovered ? colorScheme.primary.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.1)),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (cat == 'All') ...[
+                                        Icon(
+                                          Icons.grid_view_rounded, 
+                                          size: 16, 
+                                          color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Text(
+                                        cat,
+                                        style: TextStyle(
+                                          color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                          fontSize: 14,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -946,7 +1009,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         color: colorScheme.primaryContainer,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -1027,7 +1090,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                     feedback: Material(
                       elevation: 4,
                       borderRadius: BorderRadius.circular(16),
-                      child: Container(
+                      child: SizedBox(
                         width: 300,
                         child: LinkCard(
                           link: link,

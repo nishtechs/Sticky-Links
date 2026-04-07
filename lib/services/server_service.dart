@@ -58,9 +58,9 @@ class ServerService {
     // Initial server at port 7551 (Sticky Links default port)
     try {
        await io.serve(handler, 'localhost', 7551);
-       print('Sticky Links Server listening on port 7551');
+        // debugPrint('Sticky Links Server listening on port 7551');
     } catch(e) {
-       print('Failed to start server: $e');
+        // debugPrint('Failed to start server: $e');
     }
   }
 

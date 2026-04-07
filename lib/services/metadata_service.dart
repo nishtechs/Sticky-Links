@@ -50,8 +50,8 @@ class MetadataService {
   }
 
   static String? _getFavicon(Document document, String baseUrl) {
-    final URI = Uri.parse(baseUrl);
-    final String rootUrl = '${URI.scheme}://${URI.host}';
+    final uri = Uri.parse(baseUrl);
+    final String rootUrl = '${uri.scheme}://${uri.host}';
 
     // Check link tags
     final faviconNode = document.querySelector('link[rel="icon"]') ?? 

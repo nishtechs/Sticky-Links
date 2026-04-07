@@ -108,6 +108,7 @@ class GridLinkCard extends StatelessWidget {
     if (result == 'open') {
       onTap();
     } else if (result == 'reader') {
+      if (!context.mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => ReaderPage(url: link.url, title: link.title)),
@@ -163,7 +164,7 @@ class GridLinkCard extends StatelessWidget {
           ),
         ),
         color: isSelected 
-            ? colorScheme.primaryContainer.withOpacity(0.3) 
+            ? colorScheme.primaryContainer.withValues(alpha: 0.3) 
             : (settings.isGlassEnabled ? Colors.transparent : colorScheme.surfaceContainerLow),
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
@@ -191,15 +192,15 @@ class GridLinkCard extends StatelessWidget {
                                  width: double.infinity,
                                  decoration: BoxDecoration(
                                    borderRadius: BorderRadius.circular(12),
-                                   color: colorScheme.surfaceVariant,
+                                   color: colorScheme.surfaceContainerHighest,
                                  ),
                                  child: ClipRRect(
                                    borderRadius: BorderRadius.circular(12),
                                    child: CachedNetworkImage(
                                      imageUrl: link.previewImageUrl!,
                                      fit: BoxFit.cover,
-                                     placeholder: (context, url) => Container(color: colorScheme.surfaceVariant),
-                                     errorWidget: (_, __, ___) => const Center(child: Icon(Icons.image, size: 40)),
+                                     placeholder: (context, url) => Container(color: colorScheme.surfaceContainerHighest),
+                                     errorWidget: (_, _, _) => const Center(child: Icon(Icons.image, size: 40)),
                                    ),
                                  ),
                                ),
@@ -218,8 +219,8 @@ class GridLinkCard extends StatelessWidget {
                                           child: CachedNetworkImage(
                                             imageUrl: link.faviconUrl!,
                                             fit: BoxFit.cover,
-                                            placeholder: (_, __) => Container(color: colorScheme.surfaceVariant),
-                                            errorWidget: (_, __, ___) => _buildFallbackIcon(),
+                                            placeholder: (_, _) => Container(color: colorScheme.surfaceContainerHighest),
+                                            errorWidget: (_, _, _) => _buildFallbackIcon(),
                                           ),
                                         )
                                       : _buildFallbackIcon(),

@@ -50,6 +50,7 @@ class SettingsPage extends StatelessWidget {
       final content = await file.readAsString();
       try {
         final List<dynamic> jsonList = jsonDecode(content);
+        if (!context.mounted) return;
         final linksProvider = Provider.of<LinksProvider>(context, listen: false);
         
         final importedLinks = jsonList.map((item) => LinkItem.fromJson(item)).toList();
@@ -85,6 +86,7 @@ class SettingsPage extends StatelessWidget {
       final content = await file.readAsString();
       try {
         final List<LinkItem> importedLinks = BookmarkService.parseBookmarkHtml(content);
+        if (!context.mounted) return;
         final linksProvider = Provider.of<LinksProvider>(context, listen: false);
         
         final importResult = await linksProvider.importLinks(importedLinks);
@@ -193,7 +195,7 @@ class SettingsPage extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     PageRouteBuilder(
-                      pageBuilder: (context, _, __) => const WhatsNewPage(),
+                      pageBuilder: (context, _, _) => const WhatsNewPage(),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         return FadeTransition(opacity: animation, child: child);
                       },
@@ -400,7 +402,7 @@ class SettingsPage extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     PageRouteBuilder(
-                      pageBuilder: (context, _, __) => const WhatsNewPage(),
+                      pageBuilder: (context, _, _) => const WhatsNewPage(),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         return FadeTransition(opacity: animation, child: child);
                       },
@@ -444,7 +446,7 @@ class SettingsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -490,7 +492,7 @@ class _ColorOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
-    final isSelected = settings.themeColor.value == color.value;
+    final isSelected = settings.themeColor.toARGB32() == color.toARGB32();
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
@@ -510,7 +512,7 @@ class _ColorOption extends StatelessWidget {
             boxShadow: [
               if (isSelected)
                 BoxShadow(
-                  color: color.withOpacity(0.4),
+                  color: color.withValues(alpha: 0.4),
                   blurRadius: 8,
                   spreadRadius: 2,
                 ),

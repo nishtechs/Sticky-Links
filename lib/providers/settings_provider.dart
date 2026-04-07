@@ -33,7 +33,7 @@ class SettingsProvider with ChangeNotifier {
   Color get themeColor => Color(StorageService.themeColorValue);
 
   Future<void> setThemeColor(Color color) async {
-    await StorageService.setThemeColorValue(color.value);
+    await StorageService.setThemeColorValue(color.toARGB32());
     notifyListeners();
   }
 

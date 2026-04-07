@@ -118,6 +118,7 @@ class LinkCard extends StatelessWidget {
         _showDeleteDialog(context);
       }
     } else if (result == 'reader') {
+      if (!context.mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -172,7 +173,7 @@ class LinkCard extends StatelessWidget {
           ),
         ),
         color: isSelected 
-            ? colorScheme.primaryContainer.withOpacity(0.3) 
+            ? colorScheme.primaryContainer.withValues(alpha: 0.3) 
             : (settings.isGlassEnabled ? Colors.transparent : colorScheme.surfaceContainerLow),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
@@ -210,7 +211,7 @@ class LinkCard extends StatelessWidget {
                             child: CachedNetworkImage(
                               imageUrl: link.faviconUrl!,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(color: colorScheme.surfaceVariant),
+                              placeholder: (context, url) => Container(color: colorScheme.surfaceContainerHighest),
                               errorWidget: (_, __, ___) => _buildFallbackIcon(),
                             ),
                           )
@@ -224,7 +225,7 @@ class LinkCard extends StatelessWidget {
                        height: 50,
                        decoration: BoxDecoration(
                          borderRadius: BorderRadius.circular(8),
-                         color: colorScheme.surfaceVariant,
+                         color: colorScheme.surfaceContainerHighest,
                        ),
                        child: ClipRRect(
                          borderRadius: BorderRadius.circular(8),

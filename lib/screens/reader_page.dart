@@ -92,7 +92,7 @@ class _ReaderPageState extends State<ReaderPage> {
                   textStyle: TextStyle(
                     fontSize: 18,
                     height: 1.6,
-                    color: colorScheme.onSurface.withOpacity(0.9),
+                    color: colorScheme.onSurface.withValues(alpha: 0.9),
                   ),
                   onTapUrl: (url) {
                     // Logic to handle links inside articles
