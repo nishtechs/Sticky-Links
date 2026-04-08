@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -22,7 +23,9 @@ import 'settings_page.dart';
 import '../services/metadata_service.dart';
 import '../widgets/dynamic_background.dart';
 import '../widgets/glass_container.dart';
+import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:share_handler/share_handler.dart';
 import 'whats_new_page.dart';
 
 class StickyLinksHomePage extends StatefulWidget {
@@ -44,9 +47,33 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   final FocusNode _searchFocusNode = FocusNode();
   final ScrollController _categoryScrollController = ScrollController();
 
+  StreamSubscription? _intentDataStreamSubscription;
+
   @override
   void initState() {
     super.initState();
+
+    // Set up receiving intents (shared links from other apps)
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      final handler = ShareHandler.instance;
+      
+      // For sharing or opening URLs/text coming from outside the app while the app is in the memory
+      _intentDataStreamSubscription = handler.sharedMediaStream.listen((SharedMedia media) {
+        if (media.content != null) {
+           _handleSharedText(media.content!);
+        }
+      }, onError: (err) {
+        debugPrint("sharedMediaStream error: $err");
+      });
+
+      // For sharing or opening URLs/text coming from outside the app while the app is closed
+      handler.getInitialSharedMedia().then((SharedMedia? media) {
+        if (media != null && media.content != null) {
+          _handleSharedText(media.content!);
+        }
+      });
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<LinksProvider>().loadLinks();
@@ -69,6 +96,22 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     });
   }
 
+  void _handleSharedText(String text) async {
+    // Basic validation to see if it's a URL
+    String cleanUrl = text.trim();
+    if (!cleanUrl.startsWith('http')) {
+      // In case they just shared text like "example.com", try prepending https
+      cleanUrl = 'https://$cleanUrl';
+    }
+    
+    // We try to fetch metadata right away to pre-fill the form
+    final meta = await MetadataService.fetchMetadata(cleanUrl);
+    
+    if (mounted) {
+      _showLinkDialog(initialUrl: cleanUrl, initialTitle: meta['title']);
+    }
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -76,6 +119,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     _descriptionController.dispose();
     _searchFocusNode.dispose();
     _categoryScrollController.dispose();
+    _intentDataStreamSubscription?.cancel();
     super.dispose();
   }
 
@@ -109,7 +153,8 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   }
   
   String? _selectedDialogCategory;
-  List<String> _categories = [];
+  // Local list to keep track of categories for dropdowns within dialogs
+  List<String> get _categories => context.read<LinksProvider>().categories;
 
   void _showAddCategoryDialog(StateSetter updateParentDialog) {
     final catController = TextEditingController();
@@ -128,11 +173,10 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             onPressed: () {
               if (catController.text.trim().isNotEmpty) {
                  final newCat = catController.text.trim();
-                 context.read<LinksProvider>().addCategory(newCat);
-                 updateParentDialog(() {
-                   _selectedDialogCategory = newCat;
-                   _categories = context.read<LinksProvider>().categories;
-                 });
+                  context.read<LinksProvider>().addCategory(newCat);
+                  updateParentDialog(() {
+                    _selectedDialogCategory = newCat;
+                  });
               }
               Navigator.pop(context);
               // Refresh the main dialog state to reflect new category
@@ -288,10 +332,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  void _showLinkDialog({LinkItem? existingLink}) {
+  void _showLinkDialog({LinkItem? existingLink, String? initialUrl, String? initialTitle}) {
     bool isEditing = existingLink != null;
     
-    _categories = context.read<LinksProvider>().categories;
     _selectedDialogCategory = existingLink?.category;
 
     List<String> dialogTags = existingLink?.tags != null ? List<String>.from(existingLink!.tags) : [];
@@ -304,8 +347,8 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       _urlController.text = existingLink.url;
       _descriptionController.text = existingLink.description ?? '';
     } else {
-      _titleController.clear();
-      _urlController.clear();
+      _titleController.text = initialTitle ?? '';
+      _urlController.text = initialUrl ?? '';
       _descriptionController.clear();
     }
 
@@ -432,7 +475,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  initialValue: _categories.contains(_selectedDialogCategory) ? _selectedDialogCategory : 'All',
+                  value: _categories.contains(_selectedDialogCategory) ? _selectedDialogCategory : 'All',
                   decoration: InputDecoration(
                     labelText: 'Category',
                     prefixIcon: const Icon(Icons.category_rounded),
@@ -634,85 +677,28 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     final colorScheme = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
     final linksProvider = context.watch<LinksProvider>();
-    final links = linksProvider.links;
+
+    final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight + appWindow.titleBarHeight),
-        child: Column(
-          children: [
-            WindowTitleBarBox(
-              child: Row(
+      appBar: isDesktop 
+          ? PreferredSize(
+              preferredSize: Size.fromHeight(kToolbarHeight + appWindow.titleBarHeight),
+              child: Column(
                 children: [
-                  Expanded(child: MoveWindow()),
-                  const CustomWindowButtons(),
-                ],
-              ),
-            ),
-            AppBar(
-              primary: false,
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Image.asset(
-                      'app_logo.png',
-                      width: 20,
-                      height: 20,
+                  WindowTitleBarBox(
+                    child: Row(
+                      children: [
+                        Expanded(child: MoveWindow()),
+                        const CustomWindowButtons(),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Sticky Links',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  _buildAppBar(context, colorScheme, settings, linksProvider, isDesktop: true),
                 ],
               ),
-              actions: [
-                // View toggle
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ToggleButtons(
-                    borderRadius: BorderRadius.circular(12),
-                    isSelected: [!settings.isGridView, settings.isGridView],
-                    onPressed: (index) {
-                      settings.toggleGridView(index == 1);
-                    },
-                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                    children: const [
-                      Icon(Icons.view_list_rounded, size: 20),
-                      Icon(Icons.grid_view_rounded, size: 20),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(linksProvider.showArchived ? Icons.archive_rounded : Icons.unarchive_rounded),
-                  onPressed: linksProvider.toggleShowArchived,
-                  tooltip: linksProvider.showArchived ? 'Show Active' : 'Show Archived',
-                ),
-                Showcase(
-                  key: _settingsKey,
-                  title: 'Settings',
-                  description: 'Access backups, theme settings, import/export data here.',
-                  child: IconButton(
-                    icon: const Icon(Icons.settings_rounded),
-                    onPressed: _openSettings,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-          ],
-        ),
-      ),
+            )
+          : _buildAppBar(context, colorScheme, settings, linksProvider, isDesktop: false),
       body: CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.keyF, control: true): () => _searchFocusNode.requestFocus(),
@@ -728,260 +714,34 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             }
           },
         },
-        child: DropTarget(
-          onDragDone: (details) async {
-            final provider = context.read<LinksProvider>();
-            for (final file in details.files) {
-               final path = file.path;
-               if (path.startsWith('http')) {
-                  final meta = await MetadataService.fetchMetadata(path);
-                  final newLink = LinkItem(
-                    id: const Uuid().v4(),
-                    title: meta['title'] ?? path,
-                    url: path,
-                    description: meta['description'],
-                    faviconUrl: meta['faviconUrl'],
-                    previewImageUrl: meta['previewImageUrl'],
-                    category: linksProvider.selectedCategory == 'All' ? null : linksProvider.selectedCategory,
-                  );
-                  await provider.addLink(newLink);
-               }
-            }
-          },
-          child: DynamicBackground(
-          isEnabled: settings.isDynamicBackgroundEnabled,
-          seedColor: settings.themeColor,
-          child: Column(
-            children: [
-              // Search Bar
-              Showcase(
-                key: _searchKey,
-                title: 'Search & Filter',
-                description: 'Find your saved links easily, and filter by categories below.',
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: GlassContainer(
-                    isEnabled: settings.isGlassEnabled,
-                    opacity: 0.05,
-                    child: TextField(
-                      focusNode: _searchFocusNode,
-                      onChanged: linksProvider.setSearchQuery,
-                      decoration: InputDecoration(
-                        hintText: 'Search links... (Ctrl+F)',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        filled: false, // Turn off filled since we have glass
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      ),
-                    ),
-                  ),
-                ),
+        child: isDesktop 
+            ? DropTarget(
+                onDragDone: (details) async {
+                  final provider = context.read<LinksProvider>();
+                  for (final file in details.files) {
+                     final path = file.path;
+                     if (path.startsWith('http')) {
+                        final meta = await MetadataService.fetchMetadata(path);
+                        final newLink = LinkItem(
+                          id: const Uuid().v4(),
+                          title: meta['title'] ?? path,
+                          url: path,
+                          description: meta['description'],
+                          faviconUrl: meta['faviconUrl'],
+                          previewImageUrl: meta['previewImageUrl'],
+                          category: linksProvider.selectedCategory == 'All' ? null : linksProvider.selectedCategory,
+                        );
+                        await provider.addLink(newLink);
+                     }
+                  }
+                },
+                child: _buildHomeBody(context, colorScheme, settings, linksProvider),
+              )
+            : SafeArea(
+                child: _buildHomeBody(context, colorScheme, settings, linksProvider),
               ),
-              // Categories Scrollable Row
-              Container(
-                height: 60,
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: Scrollbar(
-                  controller: _categoryScrollController,
-                  thickness: 4.0,
-                  radius: const Radius.circular(10),
-                  child: ListView.builder(
-                    controller: _categoryScrollController,
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: linksProvider.categories.length,
-                    itemBuilder: (context, index) {
-                      final cat = linksProvider.categories[index];
-                      final isSelected = (linksProvider.selectedCategory ?? 'All') == cat;
-                      
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: DragTarget<String>(
-                          onWillAcceptWithDetails: (details) => true,
-                          onAcceptWithDetails: (details) {
-                             final linkId = details.data;
-                             linksProvider.moveLinkToCategory(linkId, cat == 'All' ? null : cat);
-                             ScaffoldMessenger.of(context).showSnackBar(
-                               SnackBar(
-                                 content: Text('Moved link to $cat'), 
-                                 behavior: SnackBarBehavior.floating,
-                                 width: 250,
-                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                               ),
-                             );
-                          },
-                          builder: (context, candidateData, rejectedData) {
-                            bool isHovered = candidateData.isNotEmpty;
-                            
-                            return GestureDetector(
-                              onTap: () => linksProvider.setCategory(cat),
-                              onSecondaryTapDown: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeInOut,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(25),
-                                  gradient: isSelected 
-                                    ? LinearGradient(
-                                        colors: [
-                                          colorScheme.primary,
-                                          colorScheme.primary.withBlue(200).withGreen(150),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      )
-                                    : null,
-                                  color: !isSelected 
-                                    ? (isHovered 
-                                        ? colorScheme.primaryContainer.withValues(alpha: 0.4) 
-                                        : colorScheme.surfaceContainerHighest.withValues(alpha: settings.isGlassEnabled ? 0.3 : 0.8))
-                                    : null,
-                                  boxShadow: isSelected ? [
-                                    BoxShadow(
-                                      color: colorScheme.primary.withValues(alpha: 0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ] : (isHovered ? [
-                                     BoxShadow(
-                                      color: colorScheme.primary.withValues(alpha: 0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    )
-                                  ] : []),
-                                  border: Border.all(
-                                    color: isSelected 
-                                      ? colorScheme.primary.withValues(alpha: 0.5)
-                                      : (isHovered ? colorScheme.primary.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.1)),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (cat == 'All') ...[
-                                        Icon(
-                                          Icons.grid_view_rounded, 
-                                          size: 16, 
-                                          color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant
-                                        ),
-                                        const SizedBox(width: 8),
-                                      ],
-                                      Text(
-                                        cat,
-                                        style: TextStyle(
-                                          color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                          fontSize: 14,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            // Links Section Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(
-                children: [
-                  Text(
-                    'Your Links',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${links.length}',
-                      style: TextStyle(
-                        color: colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  DropdownButton<String>(
-                    value: linksProvider.sortOrder,
-                    icon: const Icon(Icons.sort_rounded, size: 20),
-                    underline: const SizedBox(),
-                    onChanged: (String? value) {
-                      if (value != null) linksProvider.setSortOrder(value);
-                    },
-                    items: const [
-                      DropdownMenuItem(value: 'newest', child: Text('Newest First')),
-                      DropdownMenuItem(value: 'oldest', child: Text('Oldest First')),
-                      DropdownMenuItem(value: 'alphabetical', child: Text('A-Z')),
-                      DropdownMenuItem(value: 'most_clicked', child: Text('Most Clicked')),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Links List/Grid
-            Expanded(
-              child: linksProvider.totalLinks == 0 && linksProvider.searchQuery.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.link_off_rounded,
-                            size: 64,
-                            color: colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No links yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: colorScheme.outline,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap the + button to add your first link!',
-                            style: TextStyle(
-                              color: colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : links.isEmpty
-                      ? Center(child: Text('No results for "${linksProvider.searchQuery}"'))
-                      : settings.isGridView
-                          ? _buildGridView(colorScheme, links, linksProvider)
-                          : _buildListView(colorScheme, links, linksProvider),
-            ),
-          ],
-        ),
       ),
-    ),
-  ),
-  bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
+      bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
           ? _buildBulkActionBar(colorScheme, linksProvider)
           : null,
       floatingActionButton: linksProvider.selectedIds.isNotEmpty ? null : Showcase(
@@ -1002,9 +762,289 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
+  AppBar _buildAppBar(BuildContext context, ColorScheme colorScheme, SettingsProvider settings, LinksProvider linksProvider, {required bool isDesktop}) {
+    return AppBar(
+      primary: !isDesktop,
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Image.asset(
+              'app_logo.png',
+              width: 20,
+              height: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Sticky Links',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+      actions: [
+        // View toggle
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ToggleButtons(
+            borderRadius: BorderRadius.circular(12),
+            isSelected: [!settings.isGridView, settings.isGridView],
+            onPressed: (index) {
+              settings.toggleGridView(index == 1);
+            },
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            children: const [
+              Icon(Icons.view_list_rounded, size: 20),
+              Icon(Icons.grid_view_rounded, size: 20),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: Icon(linksProvider.showArchived ? Icons.archive_rounded : Icons.unarchive_rounded),
+          onPressed: linksProvider.toggleShowArchived,
+          tooltip: linksProvider.showArchived ? 'Show Active' : 'Show Archived',
+        ),
+        Showcase(
+          key: _settingsKey,
+          title: 'Settings',
+          description: 'Access backups, theme settings, import/export data here.',
+          child: IconButton(
+            icon: const Icon(Icons.settings_rounded),
+            onPressed: _openSettings,
+          ),
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Widget _buildHomeBody(BuildContext context, ColorScheme colorScheme, SettingsProvider settings, LinksProvider linksProvider) {
+    final links = linksProvider.links;
+    return DynamicBackground(
+      isEnabled: settings.isDynamicBackgroundEnabled,
+      seedColor: settings.themeColor,
+      child: Column(
+        children: [
+          // Search Bar
+          Showcase(
+            key: _searchKey,
+            title: 'Search & Filter',
+            description: 'Find your saved links easily, and filter by categories below.',
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: GlassContainer(
+                isEnabled: settings.isGlassEnabled,
+                opacity: 0.05,
+                child: TextField(
+                  focusNode: _searchFocusNode,
+                  onChanged: linksProvider.setSearchQuery,
+                  decoration: InputDecoration(
+                    hintText: 'Search links... (Ctrl+F)',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: linksProvider.searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            onPressed: () {
+                              linksProvider.setSearchQuery('');
+                              _searchFocusNode.unfocus();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: settings.isGlassEnabled ? 0.3 : 0.8),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Category Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+            child: SizedBox(
+              height: 50,
+              child: ListView.builder(
+                controller: _categoryScrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: linksProvider.categories.length,
+                itemBuilder: (context, index) {
+                  final cat = linksProvider.categories[index];
+                  final isSelected = linksProvider.selectedCategory == cat;
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: GestureDetector(
+                      onTap: () => linksProvider.setCategory(cat),
+                      onSecondaryTapDown: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(25),
+                          gradient: isSelected 
+                            ? LinearGradient(
+                                colors: [
+                                  colorScheme.primary,
+                                  colorScheme.primary.withBlue(200).withGreen(150),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                          color: !isSelected 
+                            ? (isSelected 
+                                ? colorScheme.primaryContainer.withValues(alpha: 0.4) 
+                                : colorScheme.surfaceContainerHighest.withValues(alpha: settings.isGlassEnabled ? 0.3 : 0.8))
+                            : null,
+                          boxShadow: isSelected ? [
+                            BoxShadow(
+                              color: colorScheme.primary.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            )
+                          ] : [],
+                          border: Border.all(
+                            color: isSelected 
+                              ? colorScheme.primary.withValues(alpha: 0.5)
+                              : Colors.white.withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (cat == 'All') ...[
+                                Icon(
+                                  Icons.grid_view_rounded, 
+                                  size: 16, 
+                                  color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Text(
+                                cat,
+                                style: TextStyle(
+                                  color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  fontSize: 14,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          // Links Section Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              children: [
+                Text(
+                  'Your Links',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${links.length}',
+                    style: TextStyle(
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                DropdownButton<String>(
+                  value: linksProvider.sortOrder,
+                  icon: const Icon(Icons.sort_rounded, size: 20),
+                  underline: const SizedBox(),
+                  onChanged: (String? value) {
+                    if (value != null) linksProvider.setSortOrder(value);
+                  },
+                  items: const [
+                    DropdownMenuItem(value: 'newest', child: Text('Newest First')),
+                    DropdownMenuItem(value: 'oldest', child: Text('Oldest First')),
+                    DropdownMenuItem(value: 'alphabetical', child: Text('A-Z')),
+                    DropdownMenuItem(value: 'most_clicked', child: Text('Most Clicked')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Links List/Grid
+          Expanded(
+            child: linksProvider.totalLinks == 0 && linksProvider.searchQuery.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.link_off_rounded,
+                          size: 64,
+                          color: colorScheme.outline,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No links yet',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: colorScheme.outline,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tap the + button to add your first link!',
+                          style: TextStyle(
+                            color: colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : links.isEmpty
+                    ? Center(child: Text('No results for "${linksProvider.searchQuery}"'))
+                    : settings.isGridView
+                        ? _buildGridView(colorScheme, links, linksProvider)
+                        : _buildListView(colorScheme, links, linksProvider),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBulkActionBar(ColorScheme colorScheme, LinksProvider provider) {
+    final isNarrow = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isNarrow ? 12 : 24, vertical: 8),
       decoration: BoxDecoration(
         color: colorScheme.primaryContainer,
         boxShadow: [
@@ -1019,29 +1059,44 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         child: Row(
           children: [
             Text(
-              '${provider.selectedIds.length} selected',
+              isNarrow ? '${provider.selectedIds.length}' : '${provider.selectedIds.length} selected',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: colorScheme.onPrimaryContainer,
               ),
             ),
             const Spacer(),
-            TextButton.icon(
-              onPressed: () => provider.bulkArchive(!provider.showArchived),
-              icon: Icon(provider.showArchived ? Icons.unarchive_rounded : Icons.archive_rounded),
-              label: Text(provider.showArchived ? 'Unarchive' : 'Archive'),
-            ),
-            const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: () => _showBulkDeleteDialog(provider),
-              icon: const Icon(Icons.delete_outline_rounded),
-              label: const Text('Delete'),
-              style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-            ),
-            const SizedBox(width: 8),
+            if (isNarrow) ...[
+               IconButton(
+                 onPressed: () => provider.bulkArchive(!provider.showArchived),
+                 icon: Icon(provider.showArchived ? Icons.unarchive_rounded : Icons.archive_rounded),
+                 tooltip: provider.showArchived ? 'Unarchive' : 'Archive',
+               ),
+               IconButton(
+                 onPressed: () => _showBulkDeleteDialog(provider),
+                 icon: const Icon(Icons.delete_outline_rounded),
+                 color: colorScheme.error,
+                 tooltip: 'Delete',
+               ),
+            ] else ...[
+              TextButton.icon(
+                onPressed: () => provider.bulkArchive(!provider.showArchived),
+                icon: Icon(provider.showArchived ? Icons.unarchive_rounded : Icons.archive_rounded),
+                label: Text(provider.showArchived ? 'Unarchive' : 'Archive'),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => _showBulkDeleteDialog(provider),
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Delete'),
+                style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+              ),
+            ],
+            const SizedBox(width: 4),
             IconButton(
               onPressed: () => provider.clearSelection(),
               icon: const Icon(Icons.close_rounded),
+              tooltip: 'Clear Selection',
             ),
           ],
         ),
@@ -1085,44 +1140,15 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
               child: FadeInAnimation(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Draggable<String>(
-                    data: link.id,
-                    feedback: Material(
-                      elevation: 4,
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        width: 300,
-                        child: LinkCard(
-                          link: link,
-                          onTap: () {},
-                          onEdit: () {},
-                          onDelete: () {},
-                          onArchive: () {},
-                          colorScheme: colorScheme,
-                        ),
-                      ),
-                    ),
-                    childWhenDragging: Opacity(
-                      opacity: 0.3,
-                      child: LinkCard(
-                        link: link,
-                        onTap: () {},
-                        onEdit: () {},
-                        onDelete: () {},
-                        onArchive: () {},
-                        colorScheme: colorScheme,
-                      ),
-                    ),
-                    child: LinkCard(
-                      link: link,
-                      onTap: () => _openLink(link.url),
-                      onEdit: () => _showLinkDialog(existingLink: link),
-                      onDelete: () => provider.removeLink(link.id),
-                      onArchive: () => provider.archiveLink(link.id, !link.isArchived),
-                      isSelected: provider.selectedIds.contains(link.id),
-                      onLongPress: () => provider.toggleSelection(link.id),
-                      colorScheme: colorScheme,
-                    ),
+                  child: LinkCard(
+                    link: link,
+                    onTap: () => _openLink(link.url),
+                    onEdit: () => _showLinkDialog(existingLink: link),
+                    onDelete: () => provider.removeLink(link.id),
+                    onArchive: () => provider.archiveLink(link.id, !link.isArchived),
+                    isSelected: provider.selectedIds.contains(link.id),
+                    onLongPress: () => provider.toggleSelection(link.id),
+                    colorScheme: colorScheme,
                   ),
                 ),
               ),
@@ -1141,7 +1167,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         const double crossAxisSpacing = 12.0;
 
         int crossAxisCount = (constraints.maxWidth / (itemWidth + crossAxisSpacing)).floor();
-        crossAxisCount = crossAxisCount.clamp(1, 6);
+        crossAxisCount = crossAxisCount.clamp(2, 6);
 
         return AnimationLimiter(
           child: GridView.builder(

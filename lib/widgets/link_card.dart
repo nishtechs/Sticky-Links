@@ -218,8 +218,8 @@ class LinkCard extends StatelessWidget {
                         : _buildFallbackIcon(),
                   ),
                   const SizedBox(width: 16),
-                  // Preview Image (if available)
-                  if (link.previewImageUrl != null) ...[
+                  // Preview Image (if available) - hide on very small screens to save space
+                  if (link.previewImageUrl != null && MediaQuery.of(context).size.width > 400) ...[
                      Container(
                        width: 80,
                        height: 50,
@@ -280,20 +280,63 @@ class LinkCard extends StatelessWidget {
                     ),
                   ),
                   // Actions
-                  IconButton(
-                    icon: Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, color: colorScheme.secondary),
-                    onPressed: onArchive,
-                    tooltip: link.isArchived ? 'Unarchive' : 'Archive',
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.edit_rounded, color: colorScheme.primary),
-                    onPressed: onEdit,
-                  ),
+                  if (MediaQuery.of(context).size.width > 600) ...[
+                    IconButton(
+                      icon: Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, color: colorScheme.secondary),
+                      onPressed: onArchive,
+                      tooltip: link.isArchived ? 'Unarchive' : 'Archive',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.edit_rounded, color: colorScheme.primary),
+                      onPressed: onEdit,
+                    ),
                     IconButton(
                       icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
                       onPressed: () => _showDeleteDialog(context),
                     ),
+                  ] else ...[
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert_rounded, color: colorScheme.onSurfaceVariant),
+                      onSelected: (value) {
+                        if (value == 'archive') onArchive();
+                        if (value == 'edit') onEdit();
+                        if (value == 'delete') _showDeleteDialog(context);
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'archive',
+                          child: Row(
+                            children: [
+                              Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 20),
+                              const SizedBox(width: 12),
+                              Text(link.isArchived ? 'Unarchive' : 'Archive'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: const Row(
+                            children: [
+                              Icon(Icons.edit_rounded, size: 20),
+                              const SizedBox(width: 12),
+                              const Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
+                              const SizedBox(width: 12),
+                              const Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
+                ],
                 ),
               ),
             ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:showcaseview/showcaseview.dart';
 
@@ -22,8 +24,10 @@ void main() async {
   // Start the background backup scheduler
   BackupService.startScheduler();
 
-  // Start local server for external communication
-  ServerService.start(linksProvider);
+  // Start local server for external communication (Desktop only)
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    ServerService.start(linksProvider);
+  }
   
   runApp(
     MultiProvider(
@@ -35,14 +39,16 @@ void main() async {
     ),
   );
 
-  doWhenWindowReady(() {
-    const initialSize = Size(1100, 750);
-    appWindow.minSize = const Size(600, 400);
-    appWindow.size = initialSize;
-    appWindow.alignment = Alignment.center;
-    appWindow.title = "Sticky Links";
-    appWindow.show();
-  });
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    doWhenWindowReady(() {
+      const initialSize = Size(1100, 750);
+      appWindow.minSize = const Size(600, 400);
+      appWindow.size = initialSize;
+      appWindow.alignment = Alignment.center;
+      appWindow.title = "Sticky Links";
+      appWindow.show();
+    });
+  }
 }
 
 class StickyLinksApp extends StatelessWidget {

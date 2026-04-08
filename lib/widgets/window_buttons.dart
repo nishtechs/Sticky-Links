@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +8,10 @@ class CustomWindowButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb || (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux)) {
+      return const SizedBox.shrink();
+    }
+
     final colorScheme = Theme.of(context).colorScheme;
     
     final buttonColors = WindowButtonColors(

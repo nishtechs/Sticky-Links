@@ -44,7 +44,7 @@ class WhatsNewPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            "What's New in Sticky Links v2.0",
+                            "What's New in Sticky Links v2.1",
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -54,7 +54,7 @@ class WhatsNewPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "We've completely reimagined your link saving experience.",
+                            "The ultimate cross-platform bookmarking tool just got better.",
                             style: TextStyle(
                               fontSize: 16,
                               color: colorScheme.outline,
@@ -77,38 +77,31 @@ class WhatsNewPage extends StatelessWidget {
                                   children: [
                                     _buildFeatureItem(
                                       context,
-                                      Icons.blur_on_rounded,
-                                      'Glassmorphism Aesthetics',
-                                      'A stunning new "Frosted Glass" look for your cards and sidebars.',
+                                      Icons.mobile_friendly_rounded,
+                                      'Mobile URL Sharing',
+                                      'Share links directly from your mobile browser into Sticky Links instantly.',
                                       colorScheme.primary,
                                     ),
                                     _buildFeatureItem(
                                       context,
-                                      Icons.animation_rounded,
-                                      'Dynamic Backgrounds',
-                                      'Mesmerizing animated mesh gradients that bring your workspace to life.',
+                                      Icons.grid_view_rounded,
+                                      'Adaptive Grid & Layouts',
+                                      'Perfected 2x2 grid views for mobile and responsive cards for all screen sizes.',
                                       colorScheme.secondary,
                                     ),
                                     _buildFeatureItem(
                                       context,
-                                      Icons.article_rounded,
-                                      'Internal Reader Mode',
-                                      'Read articles directly inside the app with zero distractions.',
+                                      Icons.blur_on_rounded,
+                                      'Glassmorphism Aesthetics',
+                                      'A stunning new "Frosted Glass" look for your cards and sidebars.',
                                       colorScheme.tertiary,
                                     ),
                                     _buildFeatureItem(
                                       context,
-                                      Icons.bookmark_added_rounded,
-                                      'Browser Bookmark Import',
-                                      'Easily migrate your collections from Chrome, Edge, or Firefox.',
-                                      colorScheme.primary,
-                                    ),
-                                    _buildFeatureItem(
-                                      context,
                                       Icons.hub_rounded,
-                                      'Browser Extension Bridge',
-                                      'A secure local server to "stick" links instantly from your browser.',
-                                      colorScheme.secondary,
+                                      'Extension Bridge',
+                                      'Sync links seamlessly from your PC to your mobile via our extension bridge.',
+                                      colorScheme.primary,
                                     ),
                                   ],
                                 ),
