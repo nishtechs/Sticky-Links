@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/link_item.dart';
 import '../screens/reader_page.dart';
 import '../widgets/glass_container.dart';
@@ -61,6 +62,16 @@ class LinkCard extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
+          value: 'share',
+          child: Row(
+            children: [
+              Icon(Icons.share_rounded, size: 20, color: colorScheme.tertiary),
+              const SizedBox(width: 12),
+              const Text('Share Link'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
           value: 'edit',
           child: Row(
             children: [
@@ -111,6 +122,8 @@ class LinkCard extends StatelessWidget {
       }
     } else if (result == 'edit') {
       onEdit();
+    } else if (result == 'share') {
+      Share.share(link.url, subject: link.title);
     } else if (result == 'archive') {
       onArchive();
     } else if (result == 'delete') {
@@ -300,6 +313,7 @@ class LinkCard extends StatelessWidget {
                       onSelected: (value) {
                         if (value == 'archive') onArchive();
                         if (value == 'edit') onEdit();
+                        if (value == 'share') Share.share(link.url, subject: link.title);
                         if (value == 'delete') _showDeleteDialog(context);
                       },
                       itemBuilder: (context) => [
@@ -320,6 +334,16 @@ class LinkCard extends StatelessWidget {
                               Icon(Icons.edit_rounded, size: 20),
                               const SizedBox(width: 12),
                               const Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'share',
+                          child: const Row(
+                            children: [
+                              Icon(Icons.share_rounded, size: 20),
+                              const SizedBox(width: 12),
+                              const Text('Share'),
                             ],
                           ),
                         ),

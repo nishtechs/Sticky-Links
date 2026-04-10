@@ -108,7 +108,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     final meta = await MetadataService.fetchMetadata(cleanUrl);
     
     if (mounted) {
-      _showLinkDialog(initialUrl: cleanUrl, initialTitle: meta['title']);
+      _showLinkBottomSheet(initialUrl: cleanUrl, initialTitle: meta['title']);
     }
   }
 
@@ -332,7 +332,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  void _showLinkDialog({LinkItem? existingLink, String? initialUrl, String? initialTitle}) {
+  void _showLinkBottomSheet({LinkItem? existingLink, String? initialUrl, String? initialTitle}) {
     bool isEditing = existingLink != null;
     
     _selectedDialogCategory = existingLink?.category;
@@ -352,218 +352,268 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       _descriptionController.clear();
     }
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setStateLocal) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                isEditing ? Icons.edit_rounded : Icons.add_link_rounded,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(isEditing ? 'Edit Link' : 'Add New Link'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
+        builder: (context, setStateLocal) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SafeArea(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  controller: _titleController,
-                  decoration: InputDecoration(
-                    labelText: 'Link Title',
-                    hintText: 'Enter a name for this link',
-                    prefixIcon: const Icon(Icons.title_rounded),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                // Handle area
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a title';
-                    }
-                    return null;
-                  },
                 ),
-                const SizedBox(height: 16),
-                Stack(
-                  alignment: Alignment.centerRight,
-                  children: [
-                    TextFormField(
-                      controller: _urlController,
-                      decoration: InputDecoration(
-                        labelText: 'URL',
-                        hintText: 'Enter website URL',
-                        prefixIcon: const Icon(Icons.link_rounded),
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.only(right: 100, left: 12, top: 12, bottom: 12),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              isEditing ? Icons.edit_rounded : Icons.add_link_rounded,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            isEditing ? 'Edit Link' : 'Add New Link',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
                       ),
-                      keyboardType: TextInputType.url,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a URL';
-                        }
-                        return null;
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: isFetching 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : TextButton.icon(
-                          onPressed: () async {
-                             String url = _urlController.text.trim();
-                             if (url.isEmpty) return;
-                             setStateLocal(() => isFetching = true);
-                             final meta = await MetadataService.fetchMetadata(url);
-                             setStateLocal(() {
-                               if (meta['title'] != null && _titleController.text.isEmpty) {
-                                 _titleController.text = meta['title']!;
-                               }
-                               if (meta['description'] != null && _descriptionController.text.isEmpty) {
-                                 _descriptionController.text = meta['description']!;
-                               }
-                               currentPreviewUrl = meta['previewImageUrl'];
-                               isFetching = false;
-                             });
-                          }, 
-                          icon: const Icon(Icons.auto_awesome, size: 16),
-                          label: const Text('Fetch'),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                      const SizedBox(height: 20),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextFormField(
+                                  controller: _titleController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Link Title',
+                                    hintText: 'Enter a name for this link',
+                                    prefixIcon: const Icon(Icons.title_rounded),
+                                    filled: true,
+                                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter a title';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                Stack(
+                                  alignment: Alignment.centerRight,
+                                  children: [
+                                    TextFormField(
+                                      controller: _urlController,
+                                      decoration: InputDecoration(
+                                        labelText: 'URL',
+                                        hintText: 'Enter website URL',
+                                        prefixIcon: const Icon(Icons.link_rounded),
+                                        filled: true,
+                                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        contentPadding: const EdgeInsets.only(right: 100, left: 12, top: 12, bottom: 12),
+                                      ),
+                                      keyboardType: TextInputType.url,
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'Please enter a URL';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: isFetching 
+                                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                        : TextButton.icon(
+                                          onPressed: () async {
+                                             String url = _urlController.text.trim();
+                                             if (url.isEmpty) return;
+                                             setStateLocal(() => isFetching = true);
+                                             final meta = await MetadataService.fetchMetadata(url);
+                                             setStateLocal(() {
+                                               if (meta['title'] != null && _titleController.text.isEmpty) {
+                                                 _titleController.text = meta['title']!;
+                                               }
+                                               if (meta['description'] != null && _descriptionController.text.isEmpty) {
+                                                 _descriptionController.text = meta['description']!;
+                                               }
+                                               currentPreviewUrl = meta['previewImageUrl'];
+                                               isFetching = false;
+                                             });
+                                          }, 
+                                          icon: const Icon(Icons.auto_awesome, size: 16),
+                                          label: const Text('Fetch'),
+                                          style: TextButton.styleFrom(
+                                            visualDensity: VisualDensity.compact,
+                                            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                          ),
+                                        ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _descriptionController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Description (Optional)',
+                                    hintText: 'Add a description for this link',
+                                    prefixIcon: const Icon(Icons.description_rounded),
+                                    filled: true,
+                                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  maxLines: 2,
+                                ),
+                                const SizedBox(height: 16),
+                                DropdownButtonFormField<String>(
+                                  value: _categories.contains(_selectedDialogCategory) ? _selectedDialogCategory : 'All',
+                                  decoration: InputDecoration(
+                                    labelText: 'Category',
+                                    prefixIcon: const Icon(Icons.category_rounded),
+                                    filled: true,
+                                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  items: [
+                                    ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                                    const DropdownMenuItem(value: '__NEW__', child: Text('+ Add New Category...', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  ],
+                                  onChanged: (value) {
+                                    if (value == '__NEW__') {
+                                      _showAddCategoryDialog(setStateLocal);
+                                    } else {
+                                      setStateLocal(() {
+                                        _selectedDialogCategory = value == 'All' ? null : value;
+                                      });
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                // Tagging UI
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    TextFormField(
+                                      controller: tagController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Add Tags',
+                                        hintText: 'Press Enter to add tag',
+                                        prefixIcon: const Icon(Icons.label_outline_rounded),
+                                        filled: true,
+                                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      onFieldSubmitted: (value) {
+                                        if (value.trim().isNotEmpty && !dialogTags.contains(value.trim())) {
+                                          setStateLocal(() {
+                                            dialogTags.add(value.trim());
+                                            tagController.clear();
+                                          });
+                                        }
+                                      },
+                                    ),
+                                    if (dialogTags.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        children: dialogTags.map((tag) => Chip(
+                                          label: Text(tag, style: const TextStyle(fontSize: 12)),
+                                          onDeleted: () {
+                                            setStateLocal(() => dialogTags.remove(tag));
+                                          },
+                                          padding: EdgeInsets.zero,
+                                          visualDensity: VisualDensity.compact,
+                                        )).toList(),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: 'Description (Optional)',
-                    hintText: 'Add a description for this link',
-                    prefixIcon: const Icon(Icons.description_rounded),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _categories.contains(_selectedDialogCategory) ? _selectedDialogCategory : 'All',
-                  decoration: InputDecoration(
-                    labelText: 'Category',
-                    prefixIcon: const Icon(Icons.category_rounded),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  items: [
-                    ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
-                    const DropdownMenuItem(value: '__NEW__', child: Text('+ Add New Category...', style: TextStyle(fontWeight: FontWeight.bold))),
-                  ],
-                  onChanged: (value) {
-                    if (value == '__NEW__') {
-                      _showAddCategoryDialog(setStateLocal);
-                    } else {
-                      setStateLocal(() {
-                        _selectedDialogCategory = value == 'All' ? null : value;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Tagging UI
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: tagController,
-                      decoration: InputDecoration(
-                        labelText: 'Add Tags',
-                        hintText: 'Press Enter to add tag',
-                        prefixIcon: const Icon(Icons.label_outline_rounded),
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: FilledButton.icon(
+                          onPressed: () => _saveLink(
+                            existingLink: existingLink, 
+                            tags: dialogTags,
+                            previewUrl: currentPreviewUrl,
+                          ),
+                          icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
+                          label: Text(isEditing ? 'Save Changes' : 'Add Link'),
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
                         ),
                       ),
-                      onFieldSubmitted: (value) {
-                        if (value.trim().isNotEmpty && !dialogTags.contains(value.trim())) {
-                          setStateLocal(() {
-                            dialogTags.add(value.trim());
-                            tagController.clear();
-                          });
-                        }
-                      },
-                    ),
-                    if (dialogTags.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: dialogTags.map((tag) => Chip(
-                          label: Text(tag, style: const TextStyle(fontSize: 12)),
-                          onDeleted: () {
-                            setStateLocal(() => dialogTags.remove(tag));
-                          },
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                        )).toList(),
-                      ),
                     ],
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.icon(
-            onPressed: () => _saveLink(
-              existingLink: existingLink, 
-              tags: dialogTags,
-              previewUrl: currentPreviewUrl,
-            ),
-            icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
-            label: Text(isEditing ? 'Save' : 'Add Link'),
-          ),
-        ],
-      ),
       ),
     );
   }
@@ -633,7 +683,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       }
 
       if (mounted) {
-        Navigator.pop(context);
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(existingLink == null ? 'Link added successfully!' : 'Link updated!'),
@@ -702,7 +754,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       body: CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.keyF, control: true): () => _searchFocusNode.requestFocus(),
-          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () => _showLinkDialog(),
+          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () => _showLinkBottomSheet(),
           const SingleActivator(LogicalKeyboardKey.keyH, control: true): () => linksProvider.toggleShowArchived(),
           const SingleActivator(LogicalKeyboardKey.keyV, control: true): () => settings.toggleGridView(!settings.isGridView),
           const SingleActivator(LogicalKeyboardKey.escape): () {
@@ -735,10 +787,10 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                      }
                   }
                 },
-                child: _buildHomeBody(context, colorScheme, settings, linksProvider),
+                child: _buildHomeBody(context, colorScheme, settings, linksProvider, isDesktop),
               )
             : SafeArea(
-                child: _buildHomeBody(context, colorScheme, settings, linksProvider),
+                child: _buildHomeBody(context, colorScheme, settings, linksProvider, isDesktop),
               ),
       ),
       bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
@@ -749,7 +801,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         title: 'Add New Link',
         description: 'Click here to save and organize your links.',
         child: FloatingActionButton.extended(
-          onPressed: () => _showLinkDialog(),
+          onPressed: () => _showLinkBottomSheet(),
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
           icon: const Icon(Icons.add_rounded),
@@ -826,7 +878,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  Widget _buildHomeBody(BuildContext context, ColorScheme colorScheme, SettingsProvider settings, LinksProvider linksProvider) {
+  Widget _buildHomeBody(BuildContext context, ColorScheme colorScheme, SettingsProvider settings, LinksProvider linksProvider, bool isDesktop) {
     final links = linksProvider.links;
     return DynamicBackground(
       isEnabled: settings.isDynamicBackgroundEnabled,
@@ -847,7 +899,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                   focusNode: _searchFocusNode,
                   onChanged: linksProvider.setSearchQuery,
                   decoration: InputDecoration(
-                    hintText: 'Search links... (Ctrl+F)',
+                    hintText: isDesktop ? 'Search links... (Ctrl+F)' : 'Search links...',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: linksProvider.searchQuery.isNotEmpty
                         ? IconButton(
@@ -1143,7 +1195,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                   child: LinkCard(
                     link: link,
                     onTap: () => _openLink(link.url),
-                    onEdit: () => _showLinkDialog(existingLink: link),
+                    onEdit: () => _showLinkBottomSheet(existingLink: link),
                     onDelete: () => provider.removeLink(link.id),
                     onArchive: () => provider.archiveLink(link.id, !link.isArchived),
                     isSelected: provider.selectedIds.contains(link.id),
@@ -1191,7 +1243,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                     child: GridLinkCard(
                       link: link,
                       onTap: () => _openLink(link.url),
-                      onEdit: () => _showLinkDialog(existingLink: link),
+                      onEdit: () => _showLinkBottomSheet(existingLink: link),
                      onDelete: () => provider.removeLink(link.id),
                      onArchive: () => provider.archiveLink(link.id, !link.isArchived),
                      isSelected: provider.selectedIds.contains(link.id),

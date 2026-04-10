@@ -11,6 +11,7 @@ import '../models/link_item.dart';
 import '../widgets/window_buttons.dart';
 import '../services/backup_service.dart';
 import '../services/bookmark_service.dart';
+import 'whats_new_page.dart';
 
 
 class SettingsPage extends StatelessWidget {
@@ -303,6 +304,17 @@ class SettingsPage extends StatelessWidget {
               ),
               title: const Text('Sticky Links'),
               subtitle: const Text('Version 2.1.0'),
+              onTap: () {
+                Navigator.of(context).push(
+                  PageRouteBuilder(
+                    pageBuilder: (context, _, _) => const WhatsNewPage(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    transitionDuration: const Duration(milliseconds: 600),
+                  ),
+                );
+              },
             ),
           ],
         ),

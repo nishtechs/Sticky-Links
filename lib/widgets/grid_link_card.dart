@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../models/link_item.dart';
 import '../screens/reader_page.dart';
@@ -70,6 +71,16 @@ class GridLinkCard extends StatelessWidget {
             ],
           ),
         ),
+        PopupMenuItem(
+          value: 'share',
+          child: Row(
+            children: [
+              Icon(Icons.share_rounded, size: 20, color: colorScheme.tertiary),
+              const SizedBox(width: 12),
+              const Text('Share Link'),
+            ],
+          ),
+        ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'edit',
@@ -117,6 +128,8 @@ class GridLinkCard extends StatelessWidget {
       Clipboard.setData(ClipboardData(text: link.url));
     } else if (result == 'edit') {
       onEdit();
+    } else if (result == 'share') {
+      Share.share(link.url, subject: link.title);
     } else if (result == 'archive') {
       onArchive();
     } else if (result == 'delete') {
@@ -291,6 +304,11 @@ class GridLinkCard extends StatelessWidget {
                             IconButton(
                               icon: Icon(Icons.edit_rounded, size: 18, color: colorScheme.primary),
                               onPressed: onEdit,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.share_rounded, size: 18, color: colorScheme.tertiary),
+                              onPressed: () => Share.share(link.url, subject: link.title),
                               visualDensity: VisualDensity.compact,
                             ),
                           ],
