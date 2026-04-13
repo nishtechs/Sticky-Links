@@ -27,6 +27,8 @@ import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:share_handler/share_handler.dart';
 import 'whats_new_page.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class StickyLinksHomePage extends StatefulWidget {
   const StickyLinksHomePage({super.key});
@@ -61,6 +63,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       _intentDataStreamSubscription = handler.sharedMediaStream.listen((SharedMedia media) {
         if (media.content != null) {
            _handleSharedText(media.content!);
+        } else if (media.attachments != null && media.attachments!.isNotEmpty) {
+           final attachmentPath = media.attachments!.first?.path;
+           if (attachmentPath != null) {
+              _handleSharedFile(attachmentPath);
+           }
         }
       }, onError: (err) {
         debugPrint("sharedMediaStream error: $err");
@@ -68,8 +75,15 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
       // For sharing or opening URLs/text coming from outside the app while the app is closed
       handler.getInitialSharedMedia().then((SharedMedia? media) {
-        if (media != null && media.content != null) {
-          _handleSharedText(media.content!);
+        if (media != null) {
+          if (media.content != null) {
+            _handleSharedText(media.content!);
+          } else if (media.attachments != null && media.attachments!.isNotEmpty) {
+             final attachmentPath = media.attachments!.first?.path;
+             if (attachmentPath != null) {
+                _handleSharedFile(attachmentPath);
+             }
+          }
         }
       });
     }
@@ -96,7 +110,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     });
   }
 
-  void _handleSharedText(String text) async {
+  Future<void> _handleSharedText(String text) async {
     // Basic validation to see if it's a URL
     String cleanUrl = text.trim();
     if (!cleanUrl.startsWith('http')) {
@@ -110,6 +124,93 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     if (mounted) {
       _showLinkBottomSheet(initialUrl: cleanUrl, initialTitle: meta['title']);
     }
+  }
+
+  Future<void> _handleSharedFile(String path) async {
+    if (!path.toLowerCase().endsWith('.json')) {
+       _showIncompatibleFileDialog();
+       return;
+    }
+
+    try {
+      final file = File(path);
+      final content = await file.readAsString();
+      final data = jsonDecode(content);
+      
+      if (data is List) {
+         _showImportFileDialog(data);
+      } else {
+         _showIncompatibleFileDialog();
+      }
+    } catch (e) {
+      debugPrint("Error handling shared file: $e");
+      _showIncompatibleFileDialog();
+    }
+  }
+
+  void _showIncompatibleFileDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline_rounded, color: Colors.orange),
+            SizedBox(width: 12),
+            Text('Incompatible File'),
+          ],
+        ),
+        content: const Text('This JSON file is not compatible with Sticky Links.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImportFileDialog(List<dynamic> jsonList) {
+     if (!mounted) return;
+     showDialog(
+       context: context,
+       builder: (context) => AlertDialog(
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+         title: const Text('Import Links'),
+         content: Text('Found ${jsonList.length} links in this file. Would you like to import them into your collection?'),
+         actions: [
+           TextButton(
+             onPressed: () => Navigator.pop(context),
+             child: const Text('Cancel'),
+           ),
+           FilledButton(
+             onPressed: () async {
+               Navigator.pop(context);
+               final provider = context.read<LinksProvider>();
+               int count = 0;
+               for (var item in jsonList) {
+                 try {
+                   final link = LinkItem.fromJson(item as Map<String, dynamic>);
+                   await provider.addLink(link);
+                   count++;
+                 } catch (_) {}
+               }
+               if (mounted) {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: Text('Successfully imported $count links!'),
+                     behavior: SnackBarBehavior.floating,
+                   ),
+                 );
+               }
+             },
+             child: const Text('Import All'),
+           ),
+         ],
+       ),
+     );
   }
 
   @override
@@ -261,20 +362,39 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     final jsonList = categoryLinks.map((link) => link.toJson()).toList();
     final jsonString = jsonEncode(jsonList);
 
-    String? outputFile = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export "$category" Links',
-      fileName: 'links_${category.toLowerCase().replaceAll(' ', '_')}.json',
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
-
-    if (outputFile != null) {
-      final file = File(outputFile);
-      await file.writeAsString(jsonString);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Exported ${categoryLinks.length} links from "$category"!')),
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        final directory = await getTemporaryDirectory();
+        final fileName = 'links_${category.toLowerCase().replaceAll(' ', '_')}.json';
+        final file = File('${directory.path}/$fileName');
+        await file.writeAsString(jsonString);
+        
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'Sticky Links: $category',
+          text: 'Here are my saved links for "$category".',
         );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        }
+      }
+    } else {
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export "$category" Links',
+        fileName: 'links_${category.toLowerCase().replaceAll(' ', '_')}.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (outputFile != null) {
+        final file = File(outputFile);
+        await file.writeAsString(jsonString);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Exported ${categoryLinks.length} links from "$category"!')),
+          );
+        }
       }
     }
   }
@@ -724,6 +844,27 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
+  Future<bool> _showExitConfirmationDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Exit App'),
+        content: const Text('Are you sure you want to close Sticky Links?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -732,7 +873,17 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
     final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        
+        final shouldExit = await _showExitConfirmationDialog();
+        if (shouldExit && context.mounted) {
+           SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       appBar: isDesktop 
           ? PreferredSize(
               preferredSize: Size.fromHeight(kToolbarHeight + appWindow.titleBarHeight),
@@ -810,6 +961,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
+      ),
       ),
     );
   }
@@ -940,6 +1092,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                     child: GestureDetector(
                       onTap: () => linksProvider.setCategory(cat),
                       onSecondaryTapDown: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
+                      onLongPressStart: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,

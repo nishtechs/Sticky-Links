@@ -12,6 +12,8 @@ import '../widgets/window_buttons.dart';
 import '../services/backup_service.dart';
 import '../services/bookmark_service.dart';
 import 'whats_new_page.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 
 class SettingsPage extends StatelessWidget {
@@ -23,13 +25,36 @@ class SettingsPage extends StatelessWidget {
     final jsonList = all.map((link) => link.toJson()).toList();
     final jsonString = jsonEncode(jsonList);
 
-    String? outputFile = await FilePicker.platform.saveFile(dialogTitle: 'Export Links to File', fileName: 'sticky_links_backup.json', type: FileType.custom, allowedExtensions: ['json']);
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        final directory = await getTemporaryDirectory();
+        final file = File('${directory.path}/sticky_links_backup.json');
+        await file.writeAsString(jsonString);
+        
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'Sticky Links Backup',
+          text: 'Here is your Sticky Links backup file.',
+        );
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        }
+      }
+    } else {
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export Links to File', 
+        fileName: 'sticky_links_backup.json', 
+        type: FileType.custom, 
+        allowedExtensions: ['json']
+      );
 
-    if (outputFile != null) {
-      final file = File(outputFile);
-      await file.writeAsString(jsonString);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export successful!')));
+      if (outputFile != null) {
+        final file = File(outputFile);
+        await file.writeAsString(jsonString);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export successful!')));
+        }
       }
     }
   }
