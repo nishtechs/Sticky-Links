@@ -11,6 +11,7 @@ import '../models/link_item.dart';
 import '../widgets/window_buttons.dart';
 import '../services/backup_service.dart';
 import '../services/bookmark_service.dart';
+import '../services/permission_service.dart';
 import 'whats_new_page.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -115,6 +116,15 @@ class SettingsPage extends StatelessWidget {
 
   Future<void> _pickBackupPath(BuildContext context) async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
+    
+    final hasPermission = await PermissionService.requestStoragePermission();
+    if (!hasPermission) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Storage permission required to change backup folder.')));
+      }
+      return;
+    }
+
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath(dialogTitle: 'Select Custom Backup Folder');
 
     if (selectedDirectory != null) {

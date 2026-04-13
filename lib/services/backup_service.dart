@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
 import 'package:sticky_links/services/storage_service.dart';
+import 'package:sticky_links/services/permission_service.dart';
 
 class BackupService {
   static Timer? _timer;
@@ -45,6 +46,12 @@ class BackupService {
 
   static Future<void> triggerManualBackup() async {
     try {
+      // Request permissions before proceeding
+      final hasPermission = await PermissionService.requestStoragePermission();
+      if (!hasPermission) {
+        throw 'Storage permission denied. Backup cannot proceed.';
+      }
+
       final targetPath = await getResolvedBackupPath();
       final targetDirectory = Directory(targetPath);
       
