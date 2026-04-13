@@ -43,8 +43,8 @@ class WhatsNewPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          Text(
-                            "What's New in Sticky Links v2.1",
+                            Text(
+                            "What's New in Sticky Links v2.2.0",
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
