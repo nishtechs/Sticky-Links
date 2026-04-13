@@ -307,8 +307,28 @@ class SettingsPage extends StatelessWidget {
                 icon: const Icon(Icons.refresh_rounded),
                 tooltip: 'Backup Now',
                 onPressed: () async {
-                  await BackupService.triggerManualBackup();
-                  settings.refresh();
+                  try {
+                    await BackupService.triggerManualBackup();
+                    if (context.mounted) {
+                      settings.refresh();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Backup successful!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Backup failed: $e'),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ),
@@ -328,7 +348,7 @@ class SettingsPage extends StatelessWidget {
                 child: Icon(Icons.link_rounded, color: colorScheme.onPrimaryContainer),
               ),
               title: const Text('Sticky Links'),
-              subtitle: const Text('Version 2.1.0'),
+              subtitle: const Text('Version 2.2.0'),
               onTap: () {
                 Navigator.of(context).push(
                   PageRouteBuilder(

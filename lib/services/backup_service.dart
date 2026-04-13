@@ -49,7 +49,11 @@ class BackupService {
       final targetDirectory = Directory(targetPath);
       
       if (!await targetDirectory.exists()) {
-        await targetDirectory.create(recursive: true);
+        try {
+          await targetDirectory.create(recursive: true);
+        } catch (e) {
+          throw 'Permission denied to create backup directory: $targetPath';
+        }
       }
 
       final links = StorageService.getLinks();
@@ -57,12 +61,17 @@ class BackupService {
       final jsonString = jsonEncode(jsonList);
 
       final file = File(p.join(targetDirectory.path, 'backup.json'));
-      await file.writeAsString(jsonString);
+      try {
+        await file.writeAsString(jsonString);
+      } catch (e) {
+        throw 'Permission denied to write backup file: ${file.path}';
+      }
 
       await StorageService.setLastBackupTime(DateTime.now());
       debugPrint('Automated backup successful: ${file.path}');
     } catch (e) {
       debugPrint('Failed to perform automated backup: $e');
+      rethrow;
     }
   }
 }
