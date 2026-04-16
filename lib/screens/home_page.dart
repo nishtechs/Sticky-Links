@@ -41,6 +41,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   final GlobalKey _addKey = GlobalKey();
@@ -218,6 +219,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     _titleController.dispose();
     _urlController.dispose();
     _descriptionController.dispose();
+    _searchController.dispose();
     _searchFocusNode.dispose();
     _categoryScrollController.dispose();
     _intentDataStreamSubscription?.cancel();
@@ -1048,6 +1050,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                 isEnabled: settings.isGlassEnabled,
                 opacity: 0.05,
                 child: TextField(
+                  controller: _searchController,
                   focusNode: _searchFocusNode,
                   onChanged: linksProvider.setSearchQuery,
                   decoration: InputDecoration(
@@ -1057,6 +1060,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                         ? IconButton(
                             icon: const Icon(Icons.clear_rounded),
                             onPressed: () {
+                              _searchController.clear();
                               linksProvider.setSearchQuery('');
                               _searchFocusNode.unfocus();
                             },
