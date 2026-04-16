@@ -52,6 +52,16 @@ class LinkCard extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
+          value: 'reader',
+          child: Row(
+            children: [
+              Icon(Icons.article_rounded, size: 20, color: colorScheme.secondary),
+              const SizedBox(width: 12),
+              const Text('Open in Reader'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
           value: 'copy',
           child: Row(
             children: [
@@ -71,6 +81,7 @@ class LinkCard extends StatelessWidget {
             ],
           ),
         ),
+        const PopupMenuDivider(),
         PopupMenuItem(
           value: 'edit',
           child: Row(
@@ -81,7 +92,6 @@ class LinkCard extends StatelessWidget {
             ],
           ),
         ),
-        const PopupMenuDivider(),
         PopupMenuItem(
           value: 'archive',
           child: Row(
@@ -108,6 +118,12 @@ class LinkCard extends StatelessWidget {
 
     if (result == 'open') {
       onTap();
+    } else if (result == 'reader') {
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ReaderPage(url: link.url, title: link.title)),
+      );
     } else if (result == 'copy') {
       Clipboard.setData(ClipboardData(text: link.url));
       if (context.mounted) {
@@ -117,6 +133,7 @@ class LinkCard extends StatelessWidget {
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             duration: const Duration(seconds: 2),
+            width: 250,
           ),
         );
       }
@@ -127,17 +144,7 @@ class LinkCard extends StatelessWidget {
     } else if (result == 'archive') {
       onArchive();
     } else if (result == 'delete') {
-      if (context.mounted) {
-        _showDeleteDialog(context);
-      }
-    } else if (result == 'reader') {
-      if (!context.mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ReaderPage(url: link.url, title: link.title),
-        ),
-      );
+      if (context.mounted) _showDeleteDialog(context);
     }
   }
 
@@ -311,6 +318,25 @@ class LinkCard extends StatelessWidget {
                     PopupMenuButton<String>(
                       icon: Icon(Icons.more_vert_rounded, color: colorScheme.onSurfaceVariant),
                       onSelected: (value) {
+                        if (value == 'open') onTap();
+                        if (value == 'reader') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ReaderPage(url: link.url, title: link.title)),
+                          );
+                        }
+                        if (value == 'copy') {
+                          Clipboard.setData(ClipboardData(text: link.url));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('URL copied to clipboard!'),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              duration: const Duration(seconds: 2),
+                              width: 250,
+                            ),
+                          );
+                        }
                         if (value == 'archive') onArchive();
                         if (value == 'edit') onEdit();
                         if (value == 'share') Share.share(link.url, subject: link.title);
@@ -318,10 +344,51 @@ class LinkCard extends StatelessWidget {
                       },
                       itemBuilder: (context) => [
                         PopupMenuItem(
+                          value: 'open',
+                          child: Row(
+                            children: [
+                              Icon(Icons.open_in_new_rounded, size: 20, color: colorScheme.primary),
+                              const SizedBox(width: 12),
+                              const Text('Open Link'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'reader',
+                          child: Row(
+                            children: [
+                              Icon(Icons.article_rounded, size: 20, color: colorScheme.secondary),
+                              const SizedBox(width: 12),
+                              const Text('Open in Reader'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'copy',
+                          child: Row(
+                            children: [
+                              Icon(Icons.copy_rounded, size: 20, color: colorScheme.secondary),
+                              const SizedBox(width: 12),
+                              const Text('Copy URL'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'share',
+                          child: Row(
+                            children: [
+                              Icon(Icons.share_rounded, size: 20, color: colorScheme.tertiary),
+                              const SizedBox(width: 12),
+                              const Text('Share Link'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
                           value: 'archive',
                           child: Row(
                             children: [
-                              Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 20),
+                              Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 20, color: colorScheme.secondary),
                               const SizedBox(width: 12),
                               Text(link.isArchived ? 'Unarchive' : 'Archive'),
                             ],
@@ -329,24 +396,15 @@ class LinkCard extends StatelessWidget {
                         ),
                         PopupMenuItem(
                           value: 'edit',
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.edit_rounded, size: 20),
+                              Icon(Icons.edit_rounded, size: 20, color: colorScheme.primary),
                               const SizedBox(width: 12),
-                              const Text('Edit'),
+                              const Text('Edit Link'),
                             ],
                           ),
                         ),
-                        PopupMenuItem(
-                          value: 'share',
-                          child: const Row(
-                            children: [
-                              Icon(Icons.share_rounded, size: 20),
-                              const SizedBox(width: 12),
-                              const Text('Share'),
-                            ],
-                          ),
-                        ),
+                        const PopupMenuDivider(),
                         PopupMenuItem(
                           value: 'delete',
                           child: Row(

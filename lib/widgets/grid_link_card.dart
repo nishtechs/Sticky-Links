@@ -126,6 +126,17 @@ class GridLinkCard extends StatelessWidget {
       );
     } else if (result == 'copy') {
       Clipboard.setData(ClipboardData(text: link.url));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('URL copied to clipboard!'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+            width: 250,
+          ),
+        );
+      }
     } else if (result == 'edit') {
       onEdit();
     } else if (result == 'share') {
