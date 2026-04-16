@@ -13,6 +13,7 @@ import '../services/backup_service.dart';
 import '../services/bookmark_service.dart';
 import '../services/permission_service.dart';
 import 'whats_new_page.dart';
+import '../constants.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -358,7 +359,7 @@ class SettingsPage extends StatelessWidget {
                 child: Icon(Icons.link_rounded, color: colorScheme.onPrimaryContainer),
               ),
               title: const Text('Sticky Links'),
-              subtitle: const Text('Version 2.2.0'),
+              subtitle: const Text('Version ${AppConstants.appVersion}'),
               onTap: () {
                 Navigator.of(context).push(
                   PageRouteBuilder(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/dynamic_background.dart';
+import '../constants.dart';
 
 class WhatsNewPage extends StatelessWidget {
   const WhatsNewPage({super.key});
@@ -44,7 +45,7 @@ class WhatsNewPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 24),
                             Text(
-                            "What's New in Sticky Links v2.2.1",
+                            "What's New in Sticky Links v${AppConstants.appVersion}",
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
