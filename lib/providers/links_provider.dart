@@ -25,7 +25,8 @@ class LinksProvider with ChangeNotifier {
       bool matchesSearch = _searchQuery.isEmpty ||
           link.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           link.url.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (link.description != null && link.description!.toLowerCase().contains(_searchQuery.toLowerCase()));
+          (link.description != null && link.description!.toLowerCase().contains(_searchQuery.toLowerCase())) ||
+          link.tags.any((tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase()));
       
       bool matchesCategory = _selectedCategory == null || _selectedCategory == 'All' || link.category == _selectedCategory;
       

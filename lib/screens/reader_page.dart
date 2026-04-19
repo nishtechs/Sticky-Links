@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
+import 'package:url_launcher/url_launcher.dart';
 
 class ReaderPage extends StatefulWidget {
   final String url;
@@ -52,8 +53,12 @@ class _ReaderPageState extends State<ReaderPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.open_in_browser_rounded),
-            onPressed: () {
-              // Should use url_launcher but we'll assume it's handled outside or just provide feedback
+            tooltip: 'Open in Browser',
+            onPressed: () async {
+              final uri = Uri.parse(widget.url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
             },
           ),
         ],

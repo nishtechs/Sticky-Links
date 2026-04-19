@@ -1,0 +1,35 @@
+To make Sticky Links feel even more premium and personal, here are some customization options we could add to the Settings page. I've categorized them based on their impact on the user experience.
+
+🎨 Visual & Aesthetic Customizations
+Mesh Gradient Customization:
+Currently, the dynamic background uses a seed color. We could allow users to choose Multi-color Mesh Gradients or even upload their own custom wallpaper.
+Glassmorphism Intensity:
+Add a slider to adjust the Blur Amount and Transparency of the glass containers, giving users control over how "frosty" the app looks.
+App Icon Sets:
+On Windows/Mobile, allow users to switch between different app icon styles (e.g., Neon, Minimal, Classic Material).
+Custom Font Support:
+Allow users to choose from a curated list of high-quality fonts (inter, Roboto, Outfit, or even Serif options for a "Reader" feel).
+📐 Layout & Content Controls
+Card Preview Modes:
+Minimal View: Hide descriptions and preview images, showing only titles and icons (great for users with 1000s of links).
+Compact Grid: Adjust the grid size (e.g., 2 columns vs 5 columns) regardless of window size.
+Toggle Metadata Details:
+Option to show/hide the Click Count or Date Added on individual cards.
+Favicon Style:
+Choose between Square, Rounded, or Circular site icons on the link cards.
+🧠 Performance & Behavior
+Direct-to-Browser Toggle:
+A global setting to disable the "Reader Mode" and always open links directly in the default browser on click.
+Search Behavior:
+Option to Auto-clear search after clicking a link, or keep the search query active to continue browsing results.
+Home Dashboard Widgets:
+Option to show a "Top Visited" or "Recently Added" shelf at the top of the home screen.
+🔒 Privacy & Safety
+App PIN/Biometric Lock:
+Require a local PIN or fingerprint to open the app (great for users saving private or sensitive work links).
+Sensitive Categories:
+Designate specific categories as "Hidden" unless a password is entered.
+🚀 Which one should we build first?
+I recommend starting with "Card Preview Modes" (Compact vs Detailed) or "Glassmorphism Intensity" as they provide the most immediate "WOW" factor for customization.
+
+Which of these sounds most interesting to you? I can start implementing your favorite right away!
