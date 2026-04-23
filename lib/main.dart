@@ -14,7 +14,7 @@ import 'screens/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize local DB and settings
   await StorageService.init();
 
@@ -28,7 +28,7 @@ void main() async {
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
     ServerService.start(linksProvider);
   }
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -78,9 +78,7 @@ class StickyLinksApp extends StatelessWidget {
         fontFamily: 'Segoe UI',
       ),
       themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: ShowCaseWidget(
-        builder: (context) => const StickyLinksHomePage(),
-      ),
+      home: ShowCaseWidget(builder: (context) => const StickyLinksHomePage()),
     );
   }
 }

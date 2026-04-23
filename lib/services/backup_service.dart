@@ -13,7 +13,7 @@ class BackupService {
   /// Starts a periodic scheduler to automatically backup links
   static void startScheduler() {
     _timer?.cancel();
-    
+
     final int hours = StorageService.backupIntervalHours;
     if (hours <= 0) return; // '0' means backup is disabled
 
@@ -54,7 +54,7 @@ class BackupService {
 
       final targetPath = await getResolvedBackupPath();
       final targetDirectory = Directory(targetPath);
-      
+
       if (!await targetDirectory.exists()) {
         try {
           await targetDirectory.create(recursive: true);

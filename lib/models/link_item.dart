@@ -49,10 +49,10 @@ class LinkItem {
     int? clickCount,
     List<String>? tags,
     int? timestamp,
-  })  : isArchived = isArchived ?? false,
-        clickCount = clickCount ?? 0,
-        tags = tags ?? const [],
-        timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
+  }) : isArchived = isArchived ?? false,
+       clickCount = clickCount ?? 0,
+       tags = tags ?? const [],
+       timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
 
   Map<String, dynamic> toJson() {
     return {

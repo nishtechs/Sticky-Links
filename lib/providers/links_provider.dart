@@ -22,16 +22,25 @@ class LinksProvider with ChangeNotifier {
 
   List<LinkItem> get links {
     List<LinkItem> filtered = _links.where((link) {
-      bool matchesSearch = _searchQuery.isEmpty ||
+      bool matchesSearch =
+          _searchQuery.isEmpty ||
           link.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           link.url.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (link.description != null && link.description!.toLowerCase().contains(_searchQuery.toLowerCase())) ||
-          link.tags.any((tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase()));
-      
-      bool matchesCategory = _selectedCategory == null || _selectedCategory == 'All' || link.category == _selectedCategory;
-      
+          (link.description != null &&
+              link.description!.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              )) ||
+          link.tags.any(
+            (tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase()),
+          );
+
+      bool matchesCategory =
+          _selectedCategory == null ||
+          _selectedCategory == 'All' ||
+          link.category == _selectedCategory;
+
       bool matchesArchive = link.isArchived == _showArchived;
-      
+
       return matchesSearch && matchesCategory && matchesArchive;
     }).toList();
 
@@ -40,7 +49,9 @@ class LinksProvider with ChangeNotifier {
     } else if (_sortOrder == 'oldest') {
       filtered.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     } else if (_sortOrder == 'alphabetical') {
-      filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      filtered.sort(
+        (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      );
     } else if (_sortOrder == 'most_clicked') {
       filtered.sort((a, b) => b.clickCount.compareTo(a.clickCount));
     }
@@ -73,7 +84,11 @@ class LinksProvider with ChangeNotifier {
   Future<void> addCategory(String name, {bool notify = true}) async {
     final trimmedName = name.trim();
     if (trimmedName.isNotEmpty && !_categories.contains(trimmedName)) {
-      final newCat = CategoryItem(id: const Uuid().v4(), name: trimmedName, colorValue: Colors.blue.toARGB32());
+      final newCat = CategoryItem(
+        id: const Uuid().v4(),
+        name: trimmedName,
+        colorValue: Colors.blue.toARGB32(),
+      );
       await StorageService.addCategory(newCat);
       _categories.add(trimmedName);
       if (notify) notifyListeners();
@@ -81,13 +96,19 @@ class LinksProvider with ChangeNotifier {
   }
 
   Future<void> updateCategory(String oldName, String newName) async {
-    if (newName.isNotEmpty && oldName != newName && !_categories.contains(newName)) {
+    if (newName.isNotEmpty &&
+        oldName != newName &&
+        !_categories.contains(newName)) {
       var cats = StorageService.getCategories();
       try {
         var catToUpdate = cats.firstWhere((c) => c.name == oldName);
-        var updatedCat = CategoryItem(id: catToUpdate.id, name: newName, colorValue: catToUpdate.colorValue);
+        var updatedCat = CategoryItem(
+          id: catToUpdate.id,
+          name: newName,
+          colorValue: catToUpdate.colorValue,
+        );
         await StorageService.addCategory(updatedCat);
-        
+
         // Update all links with this category
         for (var link in _links.where((l) => l.category == oldName)) {
           final updatedLink = LinkItem(
@@ -103,12 +124,14 @@ class LinksProvider with ChangeNotifier {
             isArchived: link.isArchived,
             clickCount: link.clickCount,
           );
-           await StorageService.addLink(updatedLink);
+          await StorageService.addLink(updatedLink);
         }
 
         // reload links and categories
         await loadLinks();
-      } catch(e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
     }
   }
 
@@ -117,25 +140,27 @@ class LinksProvider with ChangeNotifier {
     try {
       var catToRemove = cats.firstWhere((c) => c.name == name);
       await StorageService.removeCategory(catToRemove.id);
-      
+
       // Clear category from existing links
       for (var link in _links.where((l) => l.category == name)) {
-         final updatedLink = LinkItem(
-           id: link.id,
-           title: link.title,
-           url: link.url,
-           description: link.description,
-           faviconUrl: link.faviconUrl,
-           category: null, // Clear the category
-           timestamp: link.timestamp,
-         );
-         await StorageService.addLink(updatedLink);
+        final updatedLink = LinkItem(
+          id: link.id,
+          title: link.title,
+          url: link.url,
+          description: link.description,
+          faviconUrl: link.faviconUrl,
+          category: null, // Clear the category
+          timestamp: link.timestamp,
+        );
+        await StorageService.addLink(updatedLink);
       }
-      
+
       if (_selectedCategory == name) _selectedCategory = null;
-      
+
       await loadLinks();
-    } catch(e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   Future<void> addLink(LinkItem link) async {
@@ -261,7 +286,7 @@ class LinksProvider with ChangeNotifier {
 
   Future<void> bulkArchive(bool archive) async {
     for (var id in _selectedIds) {
-       await archiveLink(id, archive);
+      await archiveLink(id, archive);
     }
     _selectedIds.clear();
     notifyListeners();
@@ -287,6 +312,7 @@ class LinksProvider with ChangeNotifier {
     _selectedIds.clear();
     notifyListeners();
   }
+
   Future<Map<String, int>> importLinks(List<LinkItem> newLinks) async {
     int added = 0;
     int updated = 0;
@@ -295,7 +321,9 @@ class LinksProvider with ChangeNotifier {
     for (var link in newLinks) {
       final rawCat = link.category?.trim();
       if (rawCat != null && rawCat.isNotEmpty && rawCat != 'All') {
-        bool exists = _categories.any((c) => c.toLowerCase() == rawCat.toLowerCase());
+        bool exists = _categories.any(
+          (c) => c.toLowerCase() == rawCat.toLowerCase(),
+        );
         if (!exists) {
           await addCategory(rawCat, notify: false);
         }
@@ -304,19 +332,19 @@ class LinksProvider with ChangeNotifier {
 
     // 2. Prepare for link importing
     Map<String, LinkItem> currentLinksByUrl = {
-      for (var l in _links) _normalizeUrl(l.url): l
+      for (var l in _links) _normalizeUrl(l.url): l,
     };
 
     for (var link in newLinks) {
       String normalizedUrl = _normalizeUrl(link.url);
-      
+
       // Match category name to the exact casing in our system
       String? matchedCategory;
       if (link.category != null) {
         final trimmed = link.category!.trim();
         matchedCategory = _categories.firstWhere(
-          (c) => c.toLowerCase() == trimmed.toLowerCase(), 
-          orElse: () => trimmed
+          (c) => c.toLowerCase() == trimmed.toLowerCase(),
+          orElse: () => trimmed,
         );
         if (matchedCategory == 'All') matchedCategory = null;
       }

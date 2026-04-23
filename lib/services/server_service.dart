@@ -10,7 +10,7 @@ import 'package:uuid/uuid.dart';
 class ServerService {
   static late Router _router;
   static late LinksProvider _linksProvider;
-  
+
   static Future<void> start(LinksProvider provider) async {
     _linksProvider = provider;
     _router = Router();
@@ -42,9 +42,11 @@ class ServerService {
         );
 
         await _linksProvider.addLink(newLink);
-        
-        return Response.ok(jsonEncode({'status': 'success', 'message': 'Link added!'}),
-            headers: {'content-type': 'application/json'});
+
+        return Response.ok(
+          jsonEncode({'status': 'success', 'message': 'Link added!'}),
+          headers: {'content-type': 'application/json'},
+        );
       } catch (e) {
         return Response.internalServerError(body: 'Error adding link: $e');
       }
@@ -57,10 +59,10 @@ class ServerService {
 
     // Initial server at port 7551 (Sticky Links default port)
     try {
-       await io.serve(handler, 'localhost', 7551);
-        // debugPrint('Sticky Links Server listening on port 7551');
-    } catch(e) {
-        // debugPrint('Failed to start server: $e');
+      await io.serve(handler, 'localhost', 7551);
+      // debugPrint('Sticky Links Server listening on port 7551');
+    } catch (e) {
+      // debugPrint('Failed to start server: $e');
     }
   }
 
@@ -68,18 +70,25 @@ class ServerService {
     return (Handler innerHandler) {
       return (Request request) async {
         if (request.method == 'OPTIONS') {
-          return Response.ok('', headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Origin, Content-Type, X-Auth-Token',
-          });
+          return Response.ok(
+            '',
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              'Access-Control-Allow-Headers':
+                  'Origin, Content-Type, X-Auth-Token',
+            },
+          );
         }
         final response = await innerHandler(request);
-        return response.change(headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Origin, Content-Type, X-Auth-Token',
-        });
+        return response.change(
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers':
+                'Origin, Content-Type, X-Auth-Token',
+          },
+        );
       };
     };
   }

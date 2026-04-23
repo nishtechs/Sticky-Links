@@ -8,7 +8,8 @@ class SettingsProvider with ChangeNotifier {
   String? get customBackupPath => StorageService.customBackupPath;
   DateTime? get lastBackupTime => StorageService.lastBackupTime;
   bool get isGlassEnabled => StorageService.isGlassEnabled;
-  bool get isDynamicBackgroundEnabled => StorageService.isDynamicBackgroundEnabled;
+  bool get isDynamicBackgroundEnabled =>
+      StorageService.isDynamicBackgroundEnabled;
 
   Future<void> toggleGridView(bool value) async {
     await StorageService.setGridView(value);

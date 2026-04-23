@@ -28,12 +28,13 @@ class _ReaderPageState extends State<ReaderPage> {
       final response = await http.get(Uri.parse(widget.url));
       if (response.statusCode == 200) {
         final document = html_parser.parse(response.body);
-        
+
         // Simple extraction: try to find 'article', or 'main', or just body
-        final article = document.getElementsByTagName('article').firstOrNull ??
-                       document.getElementsByTagName('main').firstOrNull ??
-                       document.body;
-        
+        final article =
+            document.getElementsByTagName('article').firstOrNull ??
+            document.getElementsByTagName('main').firstOrNull ??
+            document.body;
+
         return article?.innerHtml ?? 'No content found';
       }
       return 'Failed to load content: ${response.statusCode}';

@@ -24,7 +24,10 @@ class WhatsNewPage extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 800),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 40,
+                  ),
                   child: GlassContainer(
                     isEnabled: true,
                     borderRadius: 32,
@@ -44,7 +47,7 @@ class WhatsNewPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 24),
-                            Text(
+                          Text(
                             "What's New in Sticky Links v${AppConstants.appVersion}",
                             style: TextStyle(
                               fontSize: 32,
@@ -63,7 +66,7 @@ class WhatsNewPage extends StatelessWidget {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 40),
-                          
+
                           // Feature List
                           Flexible(
                             child: AnimationLimiter(
@@ -71,37 +74,38 @@ class WhatsNewPage extends StatelessWidget {
                                 shrinkWrap: true,
                                 children: AnimationConfiguration.toStaggeredList(
                                   duration: const Duration(milliseconds: 500),
-                                  childAnimationBuilder: (widget) => SlideAnimation(
-                                    verticalOffset: 30.0,
-                                    child: FadeInAnimation(child: widget),
-                                  ),
+                                  childAnimationBuilder: (widget) =>
+                                      SlideAnimation(
+                                        verticalOffset: 30.0,
+                                        child: FadeInAnimation(child: widget),
+                                      ),
                                   children: [
                                     _buildFeatureItem(
                                       context,
-                                      Icons.list_alt_rounded,
-                                      'Unified Context Menus',
-                                      'Right-click options are now identical across Grid and List views for a seamless experience.',
+                                      Icons.security_rounded,
+                                      'Privacy & Clarity',
+                                      'Renamed "Backup Location" to "Backup Folder" to clarify that the app does not use GPS or tracking services.',
                                       colorScheme.primary,
                                     ),
                                     _buildFeatureItem(
                                       context,
-                                      Icons.palette_rounded,
-                                      'Vibrant UI Polishing',
-                                      'Enjoy a more colourful and intuitive interface with updated icons and secondary actions.',
+                                      Icons.keyboard_rounded,
+                                      'Shortcut Documentation',
+                                      'A dedicated "Shortcuts" section in Settings now helps you master quick navigation on Desktop.',
                                       colorScheme.secondary,
                                     ),
                                     _buildFeatureItem(
                                       context,
-                                      Icons.notifications_active_rounded,
-                                      'Action Feedback',
-                                      'Instant notifications for Copy URL and other quick actions help you work faster.',
+                                      Icons.search_off_rounded,
+                                      'Improved Ctrl + F',
+                                      'The search shortcut is now more reliable and automatically selects text for instant re-searching.',
                                       colorScheme.tertiary,
                                     ),
                                     _buildFeatureItem(
                                       context,
-                                      Icons.window_rounded,
-                                      'Optimized Windows Build',
-                                      'Improved desktop performance and a more robust installer for a smoother setup.',
+                                      Icons.ads_click_rounded,
+                                      'Universal Shortcuts',
+                                      'Keyboard shortcuts are now globally responsive across the entire application window.',
                                       colorScheme.primary,
                                     ),
                                   ],
@@ -109,9 +113,9 @@ class WhatsNewPage extends StatelessWidget {
                               ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 48),
-                          
+
                           // Action
                           SizedBox(
                             width: double.infinity,

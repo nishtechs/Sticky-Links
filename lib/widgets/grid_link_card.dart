@@ -31,7 +31,8 @@ class GridLinkCard extends StatelessWidget {
   });
 
   void _showContextMenu(BuildContext context, Offset position) async {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
     final result = await showMenu<String>(
       context: context,
@@ -45,7 +46,11 @@ class GridLinkCard extends StatelessWidget {
           value: 'open',
           child: Row(
             children: [
-              Icon(Icons.open_in_new_rounded, size: 20, color: colorScheme.primary),
+              Icon(
+                Icons.open_in_new_rounded,
+                size: 20,
+                color: colorScheme.primary,
+              ),
               const SizedBox(width: 12),
               const Text('Open Link'),
             ],
@@ -55,7 +60,11 @@ class GridLinkCard extends StatelessWidget {
           value: 'reader',
           child: Row(
             children: [
-              Icon(Icons.article_rounded, size: 20, color: colorScheme.secondary),
+              Icon(
+                Icons.article_rounded,
+                size: 20,
+                color: colorScheme.secondary,
+              ),
               const SizedBox(width: 12),
               const Text('Open in Reader'),
             ],
@@ -96,7 +105,13 @@ class GridLinkCard extends StatelessWidget {
           value: 'archive',
           child: Row(
             children: [
-              Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 20, color: colorScheme.secondary),
+              Icon(
+                link.isArchived
+                    ? Icons.unarchive_rounded
+                    : Icons.archive_rounded,
+                size: 20,
+                color: colorScheme.secondary,
+              ),
               const SizedBox(width: 12),
               Text(link.isArchived ? 'Unarchive' : 'Archive'),
             ],
@@ -107,7 +122,11 @@ class GridLinkCard extends StatelessWidget {
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
+              Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: colorScheme.error,
+              ),
               const SizedBox(width: 12),
               Text('Delete', style: TextStyle(color: colorScheme.error)),
             ],
@@ -122,7 +141,9 @@ class GridLinkCard extends StatelessWidget {
       if (!context.mounted) return;
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => ReaderPage(url: link.url, title: link.title)),
+        MaterialPageRoute(
+          builder: (context) => ReaderPage(url: link.url, title: link.title),
+        ),
       );
     } else if (result == 'copy') {
       Clipboard.setData(ClipboardData(text: link.url));
@@ -131,7 +152,9 @@ class GridLinkCard extends StatelessWidget {
           SnackBar(
             content: const Text('URL copied to clipboard!'),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             duration: const Duration(seconds: 2),
             width: 250,
           ),
@@ -156,7 +179,10 @@ class GridLinkCard extends StatelessWidget {
         title: const Text('Delete Link'),
         content: Text('Are you sure you want to delete "${link.title}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
@@ -183,19 +209,26 @@ class GridLinkCard extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: isSelected ? colorScheme.primary : (settings.isGlassEnabled ? Colors.white12 : Colors.transparent),
+            color: isSelected
+                ? colorScheme.primary
+                : (settings.isGlassEnabled
+                      ? Colors.white12
+                      : Colors.transparent),
             width: 2,
           ),
         ),
-        color: isSelected 
-            ? colorScheme.primaryContainer.withValues(alpha: 0.3) 
-            : (settings.isGlassEnabled ? Colors.transparent : colorScheme.surfaceContainerLow),
+        color: isSelected
+            ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+            : (settings.isGlassEnabled
+                  ? Colors.transparent
+                  : colorScheme.surfaceContainerLow),
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
             onTap: onTap,
             onLongPress: onLongPress,
-            onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
+            onSecondaryTapDown: (details) =>
+                _showContextMenu(context, details.globalPosition),
             child: Stack(
               children: [
                 InkWell(
@@ -211,23 +244,28 @@ class GridLinkCard extends StatelessWidget {
                         Stack(
                           children: [
                             if (link.previewImageUrl != null)
-                               Container(
-                                 height: 100,
-                                 width: double.infinity,
-                                 decoration: BoxDecoration(
-                                   borderRadius: BorderRadius.circular(12),
-                                   color: colorScheme.surfaceContainerHighest,
-                                 ),
-                                 child: ClipRRect(
-                                   borderRadius: BorderRadius.circular(12),
-                                   child: CachedNetworkImage(
-                                     imageUrl: link.previewImageUrl!,
-                                     fit: BoxFit.cover,
-                                     placeholder: (context, url) => Container(color: colorScheme.surfaceContainerHighest),
-                                     errorWidget: (_, _, _) => const Center(child: Icon(Icons.image, size: 40)),
-                                   ),
-                                 ),
-                               ),
+                              Container(
+                                height: 100,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: colorScheme.surfaceContainerHighest,
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: CachedNetworkImage(
+                                    imageUrl: link.previewImageUrl!,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      color:
+                                          colorScheme.surfaceContainerHighest,
+                                    ),
+                                    errorWidget: (_, _, _) => const Center(
+                                      child: Icon(Icons.image, size: 40),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             if (link.previewImageUrl == null)
                               Center(
                                 child: Container(
@@ -239,39 +277,51 @@ class GridLinkCard extends StatelessWidget {
                                   ),
                                   child: link.faviconUrl != null
                                       ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(14),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
                                           child: CachedNetworkImage(
                                             imageUrl: link.faviconUrl!,
                                             fit: BoxFit.cover,
-                                            placeholder: (_, _) => Container(color: colorScheme.surfaceContainerHighest),
-                                            errorWidget: (_, _, _) => _buildFallbackIcon(),
+                                            placeholder: (_, _) => Container(
+                                              color: colorScheme
+                                                  .surfaceContainerHighest,
+                                            ),
+                                            errorWidget: (_, _, _) =>
+                                                _buildFallbackIcon(),
                                           ),
                                         )
                                       : _buildFallbackIcon(),
                                 ),
                               ),
-                            if (link.previewImageUrl != null && link.faviconUrl != null)
-                               Positioned(
-                                 bottom: 4,
-                                 left: 4,
-                                 child: Container(
-                                   padding: const EdgeInsets.all(2),
-                                   decoration: BoxDecoration(
-                                     color: Colors.white,
-                                     borderRadius: BorderRadius.circular(6),
-                                     boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)],
-                                   ),
-                                   child: ClipRRect(
-                                     borderRadius: BorderRadius.circular(4),
-                                     child: CachedNetworkImage(
-                                       imageUrl: link.faviconUrl!,
-                                       width: 16,
-                                       height: 16,
-                                       fit: BoxFit.cover,
-                                     ),
-                                   ),
-                                 ),
-                               ),
+                            if (link.previewImageUrl != null &&
+                                link.faviconUrl != null)
+                              Positioned(
+                                bottom: 4,
+                                left: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: CachedNetworkImage(
+                                      imageUrl: link.faviconUrl!,
+                                      width: 16,
+                                      height: 16,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -283,7 +333,10 @@ class GridLinkCard extends StatelessWidget {
                                 flex: 2,
                                 child: Text(
                                   link.title,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                   textAlign: TextAlign.center,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -294,7 +347,10 @@ class GridLinkCard extends StatelessWidget {
                                 flex: 1,
                                 child: Text(
                                   Uri.parse(link.url).host,
-                                  style: TextStyle(fontSize: 12, color: colorScheme.outline),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.outline,
+                                  ),
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -308,18 +364,33 @@ class GridLinkCard extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             IconButton(
-                              icon: Icon(link.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded, size: 18, color: colorScheme.secondary),
+                              icon: Icon(
+                                link.isArchived
+                                    ? Icons.unarchive_rounded
+                                    : Icons.archive_rounded,
+                                size: 18,
+                                color: colorScheme.secondary,
+                              ),
                               onPressed: onArchive,
                               visualDensity: VisualDensity.compact,
                             ),
                             IconButton(
-                              icon: Icon(Icons.edit_rounded, size: 18, color: colorScheme.primary),
+                              icon: Icon(
+                                Icons.edit_rounded,
+                                size: 18,
+                                color: colorScheme.primary,
+                              ),
                               onPressed: onEdit,
                               visualDensity: VisualDensity.compact,
                             ),
                             IconButton(
-                              icon: Icon(Icons.share_rounded, size: 18, color: colorScheme.tertiary),
-                              onPressed: () => Share.share(link.url, subject: link.title),
+                              icon: Icon(
+                                Icons.share_rounded,
+                                size: 18,
+                                color: colorScheme.tertiary,
+                              ),
+                              onPressed: () =>
+                                  Share.share(link.url, subject: link.title),
                               visualDensity: VisualDensity.compact,
                             ),
                           ],
@@ -349,18 +420,29 @@ class GridLinkCard extends StatelessWidget {
   Widget _buildFallbackIcon() {
     String initial = link.title.isNotEmpty ? link.title[0].toUpperCase() : '?';
     final int hash = link.title.hashCode;
-    final color = Color.fromRGBO((hash & 0xFF0000) >> 16, (hash & 0x00FF00) >> 8, (hash & 0x0000FF), 1.0);
-    final pastelColor = Color.lerp(color, Colors.white, 0.4) ?? colorScheme.primaryContainer;
+    final color = Color.fromRGBO(
+      (hash & 0xFF0000) >> 16,
+      (hash & 0x00FF00) >> 8,
+      (hash & 0x0000FF),
+      1.0,
+    );
+    final pastelColor =
+        Color.lerp(color, Colors.white, 0.4) ?? colorScheme.primaryContainer;
 
     return Container(
-      decoration: BoxDecoration(color: pastelColor, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: pastelColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Center(
         child: Text(
           initial,
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: pastelColor.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+            color: pastelColor.computeLuminance() > 0.5
+                ? Colors.black87
+                : Colors.white,
           ),
         ),
       ),

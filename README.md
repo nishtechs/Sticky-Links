@@ -58,7 +58,7 @@ A premium, modern Flutter Desktop application designed to help you organize, cat
    flutter run -d windows
    ```
 
-## 📁 Backup Locations
+## 📁 Backup Folders
 
 By default, the application saves your automated backups to:
 `C:\Users\<YourUser>\Documents\sticky_links\backup.json`

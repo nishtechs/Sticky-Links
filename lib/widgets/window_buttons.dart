@@ -8,12 +8,13 @@ class CustomWindowButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb || (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux)) {
+    if (kIsWeb ||
+        (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux)) {
       return const SizedBox.shrink();
     }
 
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     final buttonColors = WindowButtonColors(
       iconNormal: colorScheme.onSurface,
       mouseOver: colorScheme.surfaceContainerHighest,

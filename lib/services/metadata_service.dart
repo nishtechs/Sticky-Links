@@ -17,19 +17,22 @@ class MetadataService {
       final Map<String, String?> metadata = {};
 
       // 1. Title
-      metadata['title'] = _getMeta(document, 'og:title') ?? 
-                        _getMeta(document, 'twitter:title') ?? 
-                        document.querySelector('title')?.text;
+      metadata['title'] =
+          _getMeta(document, 'og:title') ??
+          _getMeta(document, 'twitter:title') ??
+          document.querySelector('title')?.text;
 
       // 2. Description
-      metadata['description'] = _getMeta(document, 'og:description') ?? 
-                               _getMeta(document, 'description') ?? 
-                               _getMeta(document, 'twitter:description');
+      metadata['description'] =
+          _getMeta(document, 'og:description') ??
+          _getMeta(document, 'description') ??
+          _getMeta(document, 'twitter:description');
 
       // 3. Preview Image
-      metadata['previewImageUrl'] = _getMeta(document, 'og:image') ?? 
-                                  _getMeta(document, 'twitter:image:src') ?? 
-                                  _getMeta(document, 'twitter:image');
+      metadata['previewImageUrl'] =
+          _getMeta(document, 'og:image') ??
+          _getMeta(document, 'twitter:image:src') ??
+          _getMeta(document, 'twitter:image');
 
       // 4. Favicon
       metadata['faviconUrl'] = _getFavicon(document, url);
@@ -42,11 +45,9 @@ class MetadataService {
 
   static String? _getMeta(Document document, String property) {
     return document
-        .querySelector('meta[property="$property"]')
-        ?.attributes['content'] ??
-        document
-        .querySelector('meta[name="$property"]')
-        ?.attributes['content'];
+            .querySelector('meta[property="$property"]')
+            ?.attributes['content'] ??
+        document.querySelector('meta[name="$property"]')?.attributes['content'];
   }
 
   static String? _getFavicon(Document document, String baseUrl) {
@@ -54,9 +55,10 @@ class MetadataService {
     final String rootUrl = '${uri.scheme}://${uri.host}';
 
     // Check link tags
-    final faviconNode = document.querySelector('link[rel="icon"]') ?? 
-                        document.querySelector('link[rel="shortcut icon"]') ??
-                        document.querySelector('link[rel="apple-touch-icon"]');
+    final faviconNode =
+        document.querySelector('link[rel="icon"]') ??
+        document.querySelector('link[rel="shortcut icon"]') ??
+        document.querySelector('link[rel="apple-touch-icon"]');
 
     String? path = faviconNode?.attributes['href'];
     if (path == null) return '$rootUrl/favicon.ico';

@@ -17,7 +17,8 @@ class DynamicBackground extends StatefulWidget {
   State<DynamicBackground> createState() => _DynamicBackgroundState();
 }
 
-class _DynamicBackgroundState extends State<DynamicBackground> with SingleTickerProviderStateMixin {
+class _DynamicBackgroundState extends State<DynamicBackground>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -65,11 +66,16 @@ class MeshPainter extends CustomPainter {
   final Color color;
   final bool isDark;
 
-  MeshPainter({required this.progress, required this.color, required this.isDark});
+  MeshPainter({
+    required this.progress,
+    required this.color,
+    required this.isDark,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 100);
+    final paint = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 100);
 
     final List<Color> colors = [
       color.withValues(alpha: isDark ? 0.3 : 0.2),
@@ -79,15 +85,16 @@ class MeshPainter extends CustomPainter {
     ];
 
     for (int i = 0; i < 4; i++) {
-       final double angle = (progress * 2 * pi) + (i * pi / 2);
-       final double x = size.width / 2 + cos(angle) * size.width * 0.4;
-       final double y = size.height / 2 + sin(angle * 1.5) * size.height * 0.4;
-       
-       paint.color = colors[i];
-       canvas.drawCircle(Offset(x, y), 200 + sin(progress * pi) * 100, paint);
+      final double angle = (progress * 2 * pi) + (i * pi / 2);
+      final double x = size.width / 2 + cos(angle) * size.width * 0.4;
+      final double y = size.height / 2 + sin(angle * 1.5) * size.height * 0.4;
+
+      paint.color = colors[i];
+      canvas.drawCircle(Offset(x, y), 200 + sin(progress * pi) * 100, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant MeshPainter oldDelegate) => oldDelegate.progress != progress || oldDelegate.color != color;
+  bool shouldRepaint(covariant MeshPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }

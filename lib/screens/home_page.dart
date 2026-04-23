@@ -59,31 +59,36 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     // Set up receiving intents (shared links from other apps)
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       final handler = ShareHandler.instance;
-      
+
       // For sharing or opening URLs/text coming from outside the app while the app is in the memory
-      _intentDataStreamSubscription = handler.sharedMediaStream.listen((SharedMedia media) {
-        if (media.content != null) {
-           _handleSharedText(media.content!);
-        } else if (media.attachments != null && media.attachments!.isNotEmpty) {
-           final attachmentPath = media.attachments!.first?.path;
-           if (attachmentPath != null) {
+      _intentDataStreamSubscription = handler.sharedMediaStream.listen(
+        (SharedMedia media) {
+          if (media.content != null) {
+            _handleSharedText(media.content!);
+          } else if (media.attachments != null &&
+              media.attachments!.isNotEmpty) {
+            final attachmentPath = media.attachments!.first?.path;
+            if (attachmentPath != null) {
               _handleSharedFile(attachmentPath);
-           }
-        }
-      }, onError: (err) {
-        debugPrint("sharedMediaStream error: $err");
-      });
+            }
+          }
+        },
+        onError: (err) {
+          debugPrint("sharedMediaStream error: $err");
+        },
+      );
 
       // For sharing or opening URLs/text coming from outside the app while the app is closed
       handler.getInitialSharedMedia().then((SharedMedia? media) {
         if (media != null) {
           if (media.content != null) {
             _handleSharedText(media.content!);
-          } else if (media.attachments != null && media.attachments!.isNotEmpty) {
-             final attachmentPath = media.attachments!.first?.path;
-             if (attachmentPath != null) {
-                _handleSharedFile(attachmentPath);
-             }
+          } else if (media.attachments != null &&
+              media.attachments!.isNotEmpty) {
+            final attachmentPath = media.attachments!.first?.path;
+            if (attachmentPath != null) {
+              _handleSharedFile(attachmentPath);
+            }
           }
         }
       });
@@ -93,17 +98,18 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       if (!mounted) return;
       context.read<LinksProvider>().loadLinks();
       final settings = context.read<SettingsProvider>();
-      
+
       if (!settings.isWhatsNewSeen) {
-         Navigator.of(context).push(
-           PageRouteBuilder(
-             pageBuilder: (context, _, _) => const WhatsNewPage(),
-             transitionsBuilder: (context, animation, secondaryAnimation, child) {
-               return FadeTransition(opacity: animation, child: child);
-             },
-             transitionDuration: const Duration(milliseconds: 600),
-           ),
-         );
+        Navigator.of(context).push(
+          PageRouteBuilder(
+            pageBuilder: (context, _, _) => const WhatsNewPage(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 600),
+          ),
+        );
       } else if (!StorageService.hasShownTutorial) {
         ShowcaseView.get().startShowCase([_addKey, _searchKey, _settingsKey]);
         StorageService.setHasShownTutorial(true);
@@ -118,10 +124,10 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       // In case they just shared text like "example.com", try prepending https
       cleanUrl = 'https://$cleanUrl';
     }
-    
+
     // We try to fetch metadata right away to pre-fill the form
     final meta = await MetadataService.fetchMetadata(cleanUrl);
-    
+
     if (mounted) {
       _showLinkBottomSheet(initialUrl: cleanUrl, initialTitle: meta['title']);
     }
@@ -129,19 +135,19 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
   Future<void> _handleSharedFile(String path) async {
     if (!path.toLowerCase().endsWith('.json')) {
-       _showIncompatibleFileDialog();
-       return;
+      _showIncompatibleFileDialog();
+      return;
     }
 
     try {
       final file = File(path);
       final content = await file.readAsString();
       final data = jsonDecode(content);
-      
+
       if (data is List) {
-         _showImportFileDialog(data);
+        _showImportFileDialog(data);
       } else {
-         _showIncompatibleFileDialog();
+        _showIncompatibleFileDialog();
       }
     } catch (e) {
       debugPrint("Error handling shared file: $e");
@@ -162,7 +168,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             Text('Incompatible File'),
           ],
         ),
-        content: const Text('This JSON file is not compatible with Sticky Links.'),
+        content: const Text(
+          'This JSON file is not compatible with Sticky Links.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -174,44 +182,46 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   }
 
   void _showImportFileDialog(List<dynamic> jsonList) {
-     if (!mounted) return;
-     showDialog(
-       context: context,
-       builder: (context) => AlertDialog(
-         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-         title: const Text('Import Links'),
-         content: Text('Found ${jsonList.length} links in this file. Would you like to import them into your collection?'),
-         actions: [
-           TextButton(
-             onPressed: () => Navigator.pop(context),
-             child: const Text('Cancel'),
-           ),
-           FilledButton(
-             onPressed: () async {
-               Navigator.pop(context);
-               final provider = context.read<LinksProvider>();
-               int count = 0;
-               for (var item in jsonList) {
-                 try {
-                   final link = LinkItem.fromJson(item as Map<String, dynamic>);
-                   await provider.addLink(link);
-                   count++;
-                 } catch (_) {}
-               }
-               if (mounted) {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   SnackBar(
-                     content: Text('Successfully imported $count links!'),
-                     behavior: SnackBarBehavior.floating,
-                   ),
-                 );
-               }
-             },
-             child: const Text('Import All'),
-           ),
-         ],
-       ),
-     );
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Import Links'),
+        content: Text(
+          'Found ${jsonList.length} links in this file. Would you like to import them into your collection?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final provider = context.read<LinksProvider>();
+              int count = 0;
+              for (var item in jsonList) {
+                try {
+                  final link = LinkItem.fromJson(item as Map<String, dynamic>);
+                  await provider.addLink(link);
+                  count++;
+                } catch (_) {}
+              }
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Successfully imported $count links!'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Import All'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -254,7 +264,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       return null;
     }
   }
-  
+
   String? _selectedDialogCategory;
   // Local list to keep track of categories for dropdowns within dialogs
   List<String> get _categories => context.read<LinksProvider>().categories;
@@ -267,35 +277,47 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         title: const Text('New Category'),
         content: TextField(
           controller: catController,
-          decoration: const InputDecoration(hintText: 'Category Name', filled: true),
+          decoration: const InputDecoration(
+            hintText: 'Category Name',
+            filled: true,
+          ),
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               if (catController.text.trim().isNotEmpty) {
-                 final newCat = catController.text.trim();
-                  context.read<LinksProvider>().addCategory(newCat);
-                  updateParentDialog(() {
-                    _selectedDialogCategory = newCat;
-                  });
+                final newCat = catController.text.trim();
+                context.read<LinksProvider>().addCategory(newCat);
+                updateParentDialog(() {
+                  _selectedDialogCategory = newCat;
+                });
               }
               Navigator.pop(context);
               // Refresh the main dialog state to reflect new category
               if (mounted) setState(() {});
             },
             child: const Text('Add'),
-          )
+          ),
         ],
       ),
     );
   }
 
-  void _showCategoryContextMenu(BuildContext context, Offset position, String category, ColorScheme colorScheme) async {
+  void _showCategoryContextMenu(
+    BuildContext context,
+    Offset position,
+    String category,
+    ColorScheme colorScheme,
+  ) async {
     if (category == 'All') return; // Cannot edit/delete 'All'
-    
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(
@@ -319,7 +341,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           value: 'export',
           child: Row(
             children: [
-              Icon(Icons.download_rounded, size: 20, color: colorScheme.secondary),
+              Icon(
+                Icons.download_rounded,
+                size: 20,
+                color: colorScheme.secondary,
+              ),
               const SizedBox(width: 12),
               const Text('Export Category Links'),
             ],
@@ -330,9 +356,16 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
+              Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: colorScheme.error,
+              ),
               const SizedBox(width: 12),
-              Text('Delete Category', style: TextStyle(color: colorScheme.error)),
+              Text(
+                'Delete Category',
+                style: TextStyle(color: colorScheme.error),
+              ),
             ],
           ),
         ),
@@ -350,12 +383,16 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
   Future<void> _exportCategoryLinks(String category) async {
     final linksProvider = Provider.of<LinksProvider>(context, listen: false);
-    final categoryLinks = linksProvider.allLinks.where((l) => l.category == category).toList();
+    final categoryLinks = linksProvider.allLinks
+        .where((l) => l.category == category)
+        .toList();
 
     if (categoryLinks.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No links found in category "$category" to export.')),
+          SnackBar(
+            content: Text('No links found in category "$category" to export.'),
+          ),
         );
       }
       return;
@@ -367,10 +404,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       try {
         final directory = await getTemporaryDirectory();
-        final fileName = 'links_${category.toLowerCase().replaceAll(' ', '_')}.json';
+        final fileName =
+            'links_${category.toLowerCase().replaceAll(' ', '_')}.json';
         final file = File('${directory.path}/$fileName');
         await file.writeAsString(jsonString);
-        
+
         await Share.shareXFiles(
           [XFile(file.path)],
           subject: 'Sticky Links: $category',
@@ -378,7 +416,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         );
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
         }
       }
     } else {
@@ -394,7 +434,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         await file.writeAsString(jsonString);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Exported ${categoryLinks.length} links from "$category"!')),
+            SnackBar(
+              content: Text(
+                'Exported ${categoryLinks.length} links from "$category"!',
+              ),
+            ),
           );
         }
       }
@@ -409,11 +453,17 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         title: const Text('Rename Category'),
         content: TextField(
           controller: catController,
-          decoration: const InputDecoration(hintText: 'New Category Name', filled: true),
+          decoration: const InputDecoration(
+            hintText: 'New Category Name',
+            filled: true,
+          ),
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               final newCat = catController.text.trim();
@@ -423,7 +473,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
               Navigator.pop(context);
             },
             child: const Text('Save'),
-          )
+          ),
         ],
       ),
     );
@@ -435,7 +485,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Category'),
-        content: Text('Are you sure you want to delete "$categoryName"?\n\nLinks inside this category will not be deleted, they will just lose the category.'),
+        content: Text(
+          'Are you sure you want to delete "$categoryName"?\n\nLinks inside this category will not be deleted, they will just lose the category.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -446,7 +498,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
               context.read<LinksProvider>().removeCategory(categoryName);
               Navigator.pop(context);
             },
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -454,12 +508,18 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  void _showLinkBottomSheet({LinkItem? existingLink, String? initialUrl, String? initialTitle}) {
+  void _showLinkBottomSheet({
+    LinkItem? existingLink,
+    String? initialUrl,
+    String? initialTitle,
+  }) {
     bool isEditing = existingLink != null;
-    
+
     _selectedDialogCategory = existingLink?.category;
 
-    List<String> dialogTags = existingLink?.tags != null ? List<String>.from(existingLink!.tags) : [];
+    List<String> dialogTags = existingLink?.tags != null
+        ? List<String>.from(existingLink!.tags)
+        : [];
     final tagController = TextEditingController();
     bool isFetching = false;
     String? currentPreviewUrl = existingLink?.previewImageUrl;
@@ -498,7 +558,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -513,20 +575,25 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
-                              isEditing ? Icons.edit_rounded : Icons.add_link_rounded,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              isEditing
+                                  ? Icons.edit_rounded
+                                  : Icons.add_link_rounded,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Text(
                             isEditing ? 'Edit Link' : 'Add New Link',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const Spacer(),
                           IconButton(
@@ -550,7 +617,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                     hintText: 'Enter a name for this link',
                                     prefixIcon: const Icon(Icons.title_rounded),
                                     filled: true,
-                                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    fillColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(14),
                                       borderSide: BorderSide.none,
@@ -572,18 +641,30 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                       decoration: InputDecoration(
                                         labelText: 'URL',
                                         hintText: 'Enter website URL',
-                                        prefixIcon: const Icon(Icons.link_rounded),
+                                        prefixIcon: const Icon(
+                                          Icons.link_rounded,
+                                        ),
                                         filled: true,
-                                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        fillColor: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(14),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
                                           borderSide: BorderSide.none,
                                         ),
-                                        contentPadding: const EdgeInsets.only(right: 100, left: 12, top: 12, bottom: 12),
+                                        contentPadding: const EdgeInsets.only(
+                                          right: 100,
+                                          left: 12,
+                                          top: 12,
+                                          bottom: 12,
+                                        ),
                                       ),
                                       keyboardType: TextInputType.url,
                                       validator: (value) {
-                                        if (value == null || value.trim().isEmpty) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
                                           return 'Please enter a URL';
                                         }
                                         return null;
@@ -591,32 +672,63 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.only(right: 8),
-                                      child: isFetching 
-                                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                        : TextButton.icon(
-                                          onPressed: () async {
-                                             String url = _urlController.text.trim();
-                                             if (url.isEmpty) return;
-                                             setStateLocal(() => isFetching = true);
-                                             final meta = await MetadataService.fetchMetadata(url);
-                                             setStateLocal(() {
-                                               if (meta['title'] != null && _titleController.text.isEmpty) {
-                                                 _titleController.text = meta['title']!;
-                                               }
-                                               if (meta['description'] != null && _descriptionController.text.isEmpty) {
-                                                 _descriptionController.text = meta['description']!;
-                                               }
-                                               currentPreviewUrl = meta['previewImageUrl'];
-                                               isFetching = false;
-                                             });
-                                          }, 
-                                          icon: const Icon(Icons.auto_awesome, size: 16),
-                                          label: const Text('Fetch'),
-                                          style: TextButton.styleFrom(
-                                            visualDensity: VisualDensity.compact,
-                                            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                          ),
-                                        ),
+                                      child: isFetching
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : TextButton.icon(
+                                              onPressed: () async {
+                                                String url = _urlController.text
+                                                    .trim();
+                                                if (url.isEmpty) return;
+                                                setStateLocal(
+                                                  () => isFetching = true,
+                                                );
+                                                final meta =
+                                                    await MetadataService.fetchMetadata(
+                                                      url,
+                                                    );
+                                                setStateLocal(() {
+                                                  if (meta['title'] != null &&
+                                                      _titleController
+                                                          .text
+                                                          .isEmpty) {
+                                                    _titleController.text =
+                                                        meta['title']!;
+                                                  }
+                                                  if (meta['description'] !=
+                                                          null &&
+                                                      _descriptionController
+                                                          .text
+                                                          .isEmpty) {
+                                                    _descriptionController
+                                                            .text =
+                                                        meta['description']!;
+                                                  }
+                                                  currentPreviewUrl =
+                                                      meta['previewImageUrl'];
+                                                  isFetching = false;
+                                                });
+                                              },
+                                              icon: const Icon(
+                                                Icons.auto_awesome,
+                                                size: 16,
+                                              ),
+                                              label: const Text('Fetch'),
+                                              style: TextButton.styleFrom(
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                backgroundColor:
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .primaryContainer
+                                                        .withValues(alpha: 0.5),
+                                              ),
+                                            ),
                                     ),
                                   ],
                                 ),
@@ -626,9 +738,13 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                   decoration: InputDecoration(
                                     labelText: 'Description (Optional)',
                                     hintText: 'Add a description for this link',
-                                    prefixIcon: const Icon(Icons.description_rounded),
+                                    prefixIcon: const Icon(
+                                      Icons.description_rounded,
+                                    ),
                                     filled: true,
-                                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    fillColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(14),
                                       borderSide: BorderSide.none,
@@ -638,27 +754,51 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                 ),
                                 const SizedBox(height: 16),
                                 DropdownButtonFormField<String>(
-                                  value: _categories.contains(_selectedDialogCategory) ? _selectedDialogCategory : 'All',
+                                  value:
+                                      _categories.contains(
+                                        _selectedDialogCategory,
+                                      )
+                                      ? _selectedDialogCategory
+                                      : 'All',
                                   decoration: InputDecoration(
                                     labelText: 'Category',
-                                    prefixIcon: const Icon(Icons.category_rounded),
+                                    prefixIcon: const Icon(
+                                      Icons.category_rounded,
+                                    ),
                                     filled: true,
-                                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    fillColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(14),
                                       borderSide: BorderSide.none,
                                     ),
                                   ),
                                   items: [
-                                    ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
-                                    const DropdownMenuItem(value: '__NEW__', child: Text('+ Add New Category...', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    ..._categories.map(
+                                      (c) => DropdownMenuItem(
+                                        value: c,
+                                        child: Text(c),
+                                      ),
+                                    ),
+                                    const DropdownMenuItem(
+                                      value: '__NEW__',
+                                      child: Text(
+                                        '+ Add New Category...',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                   onChanged: (value) {
                                     if (value == '__NEW__') {
                                       _showAddCategoryDialog(setStateLocal);
                                     } else {
                                       setStateLocal(() {
-                                        _selectedDialogCategory = value == 'All' ? null : value;
+                                        _selectedDialogCategory = value == 'All'
+                                            ? null
+                                            : value;
                                       });
                                     }
                                   },
@@ -673,16 +813,25 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                       decoration: InputDecoration(
                                         labelText: 'Add Tags',
                                         hintText: 'Press Enter to add tag',
-                                        prefixIcon: const Icon(Icons.label_outline_rounded),
+                                        prefixIcon: const Icon(
+                                          Icons.label_outline_rounded,
+                                        ),
                                         filled: true,
-                                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        fillColor: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(14),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
                                           borderSide: BorderSide.none,
                                         ),
                                       ),
                                       onFieldSubmitted: (value) {
-                                        if (value.trim().isNotEmpty && !dialogTags.contains(value.trim())) {
+                                        if (value.trim().isNotEmpty &&
+                                            !dialogTags.contains(
+                                              value.trim(),
+                                            )) {
                                           setStateLocal(() {
                                             dialogTags.add(value.trim());
                                             tagController.clear();
@@ -695,14 +844,27 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                       Wrap(
                                         spacing: 8,
                                         runSpacing: 4,
-                                        children: dialogTags.map((tag) => Chip(
-                                          label: Text(tag, style: const TextStyle(fontSize: 12)),
-                                          onDeleted: () {
-                                            setStateLocal(() => dialogTags.remove(tag));
-                                          },
-                                          padding: EdgeInsets.zero,
-                                          visualDensity: VisualDensity.compact,
-                                        )).toList(),
+                                        children: dialogTags
+                                            .map(
+                                              (tag) => Chip(
+                                                label: Text(
+                                                  tag,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onDeleted: () {
+                                                  setStateLocal(
+                                                    () =>
+                                                        dialogTags.remove(tag),
+                                                  );
+                                                },
+                                                padding: EdgeInsets.zero,
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                              ),
+                                            )
+                                            .toList(),
                                       ),
                                     ],
                                   ],
@@ -718,14 +880,18 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                         height: 50,
                         child: FilledButton.icon(
                           onPressed: () => _saveLink(
-                            existingLink: existingLink, 
+                            existingLink: existingLink,
                             tags: dialogTags,
                             previewUrl: currentPreviewUrl,
                           ),
-                          icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
+                          icon: Icon(
+                            isEditing ? Icons.save_rounded : Icons.add_rounded,
+                          ),
                           label: Text(isEditing ? 'Save Changes' : 'Add Link'),
                           style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                         ),
                       ),
@@ -740,7 +906,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  void _saveLink({LinkItem? existingLink, List<String>? tags, String? previewUrl}) async {
+  void _saveLink({
+    LinkItem? existingLink,
+    List<String>? tags,
+    String? previewUrl,
+  }) async {
     if (_formKey.currentState!.validate()) {
       String fullUrl = _urlController.text.trim();
 
@@ -752,37 +922,47 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       String? currentPreviewUrl = previewUrl ?? existingLink?.previewImageUrl;
 
       if (existingLink == null || existingLink.url != fullUrl) {
-         final meta = await MetadataService.fetchMetadata(fullUrl);
-         if (!mounted) return;
-         faviconUrl = meta['faviconUrl'] ?? await _fetchFaviconUrl(fullUrl);
-         if (!mounted) return;
-         currentPreviewUrl = previewUrl ?? meta['previewImageUrl'];
+        final meta = await MetadataService.fetchMetadata(fullUrl);
+        if (!mounted) return;
+        faviconUrl = meta['faviconUrl'] ?? await _fetchFaviconUrl(fullUrl);
+        if (!mounted) return;
+        currentPreviewUrl = previewUrl ?? meta['previewImageUrl'];
       }
 
       if (!mounted) return;
       final provider = context.read<LinksProvider>();
 
       if (existingLink == null) {
-         if (provider.isDuplicate(fullUrl)) {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Duplicate Link'),
-                content: const Text('This link is already in your list. Do you want to add it again?'),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                  FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Add Anyway')),
-                ],
+        if (provider.isDuplicate(fullUrl)) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Duplicate Link'),
+              content: const Text(
+                'This link is already in your list. Do you want to add it again?',
               ),
-            );
-            if (confirm != true) return;
-         }
-        
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('No'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Yes, Add Anyway'),
+                ),
+              ],
+            ),
+          );
+          if (confirm != true) return;
+        }
+
         final newLink = LinkItem(
           id: const Uuid().v4(),
           title: _titleController.text.trim(),
           url: fullUrl,
-          description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
           faviconUrl: faviconUrl,
           category: _selectedDialogCategory,
           tags: tags ?? [],
@@ -794,7 +974,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           id: existingLink.id,
           title: _titleController.text.trim(),
           url: fullUrl,
-          description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
           faviconUrl: faviconUrl,
           category: _selectedDialogCategory ?? existingLink.category,
           timestamp: existingLink.timestamp,
@@ -810,9 +992,15 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(existingLink == null ? 'Link added successfully!' : 'Link updated!'),
+            content: Text(
+              existingLink == null
+                  ? 'Link added successfully!'
+                  : 'Link updated!',
+            ),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -821,7 +1009,10 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
   void _openLink(String url) async {
     final provider = context.read<LinksProvider>();
-    final link = provider.allLinks.firstWhere((l) => l.url == url, orElse: () => throw 'Link not found');
+    final link = provider.allLinks.firstWhere(
+      (l) => l.url == url,
+      orElse: () => throw 'Link not found',
+    );
     provider.incrementClick(link.id);
 
     final Uri uri = Uri.parse(url);
@@ -848,23 +1039,26 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
   Future<bool> _showExitConfirmationDialog() async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Exit App'),
-        content: const Text('Are you sure you want to close Sticky Links?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text('Exit App'),
+            content: const Text('Are you sure you want to close Sticky Links?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Exit'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Exit'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   @override
@@ -873,59 +1067,84 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     final settings = context.watch<SettingsProvider>();
     final linksProvider = context.watch<LinksProvider>();
 
-    final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+    final isDesktop =
+        !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        
+
         final shouldExit = await _showExitConfirmationDialog();
         if (shouldExit && context.mounted) {
-           SystemNavigator.pop();
+          SystemNavigator.pop();
         }
       },
-      child: Scaffold(
-      appBar: isDesktop 
-          ? PreferredSize(
-              preferredSize: Size.fromHeight(kToolbarHeight + appWindow.titleBarHeight),
-              child: Column(
-                children: [
-                  WindowTitleBarBox(
-                    child: Row(
-                      children: [
-                        Expanded(child: MoveWindow()),
-                        const CustomWindowButtons(),
-                      ],
-                    ),
-                  ),
-                  _buildAppBar(context, colorScheme, settings, linksProvider, isDesktop: true),
-                ],
-              ),
-            )
-          : _buildAppBar(context, colorScheme, settings, linksProvider, isDesktop: false),
-      body: CallbackShortcuts(
+      child: CallbackShortcuts(
         bindings: {
-          const SingleActivator(LogicalKeyboardKey.keyF, control: true): () => _searchFocusNode.requestFocus(),
-          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () => _showLinkBottomSheet(),
-          const SingleActivator(LogicalKeyboardKey.keyH, control: true): () => linksProvider.toggleShowArchived(),
-          const SingleActivator(LogicalKeyboardKey.keyV, control: true): () => settings.toggleGridView(!settings.isGridView),
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+            _searchFocusNode.requestFocus();
+            _searchController.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: _searchController.text.length,
+            );
+          },
+          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
+              _showLinkBottomSheet(),
+          const SingleActivator(LogicalKeyboardKey.keyH, control: true): () =>
+              linksProvider.toggleShowArchived(),
+          const SingleActivator(LogicalKeyboardKey.keyV, control: true): () =>
+              settings.toggleGridView(!settings.isGridView),
           const SingleActivator(LogicalKeyboardKey.escape): () {
             if (linksProvider.selectedIds.isNotEmpty) {
               linksProvider.clearSelection();
             } else {
               linksProvider.setSearchQuery('');
+              _searchController.clear();
               _searchFocusNode.unfocus();
             }
           },
         },
-        child: isDesktop 
-            ? DropTarget(
-                onDragDone: (details) async {
-                  final provider = context.read<LinksProvider>();
-                  for (final file in details.files) {
-                     final path = file.path;
-                     if (path.startsWith('http')) {
+        child: Scaffold(
+          appBar: isDesktop
+              ? PreferredSize(
+                  preferredSize: Size.fromHeight(
+                    kToolbarHeight + appWindow.titleBarHeight,
+                  ),
+                  child: Column(
+                    children: [
+                      WindowTitleBarBox(
+                        child: Row(
+                          children: [
+                            Expanded(child: MoveWindow()),
+                            const CustomWindowButtons(),
+                          ],
+                        ),
+                      ),
+                      _buildAppBar(
+                        context,
+                        colorScheme,
+                        settings,
+                        linksProvider,
+                        isDesktop: true,
+                      ),
+                    ],
+                  ),
+                )
+              : _buildAppBar(
+                  context,
+                  colorScheme,
+                  settings,
+                  linksProvider,
+                  isDesktop: false,
+                ),
+          body: isDesktop
+              ? DropTarget(
+                  onDragDone: (details) async {
+                    final provider = context.read<LinksProvider>();
+                    for (final file in details.files) {
+                      final path = file.path;
+                      if (path.startsWith('http')) {
                         final meta = await MetadataService.fetchMetadata(path);
                         final newLink = LinkItem(
                           id: const Uuid().v4(),
@@ -934,41 +1153,63 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                           description: meta['description'],
                           faviconUrl: meta['faviconUrl'],
                           previewImageUrl: meta['previewImageUrl'],
-                          category: linksProvider.selectedCategory == 'All' ? null : linksProvider.selectedCategory,
+                          category: linksProvider.selectedCategory == 'All'
+                              ? null
+                              : linksProvider.selectedCategory,
                         );
                         await provider.addLink(newLink);
-                     }
-                  }
-                },
-                child: _buildHomeBody(context, colorScheme, settings, linksProvider, isDesktop),
-              )
-            : SafeArea(
-                child: _buildHomeBody(context, colorScheme, settings, linksProvider, isDesktop),
-              ),
-      ),
-      bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
-          ? _buildBulkActionBar(colorScheme, linksProvider)
-          : null,
-      floatingActionButton: linksProvider.selectedIds.isNotEmpty ? null : Showcase(
-        key: _addKey,
-        title: 'Add New Link',
-        description: 'Click here to save and organize your links.',
-        child: FloatingActionButton.extended(
-          onPressed: () => _showLinkBottomSheet(),
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          icon: const Icon(Icons.add_rounded),
-          label: const Text(
-            'Add Link',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
+                      }
+                    }
+                  },
+                  child: _buildHomeBody(
+                    context,
+                    colorScheme,
+                    settings,
+                    linksProvider,
+                    isDesktop,
+                  ),
+                )
+              : SafeArea(
+                  child: _buildHomeBody(
+                    context,
+                    colorScheme,
+                    settings,
+                    linksProvider,
+                    isDesktop,
+                  ),
+                ),
+          bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
+              ? _buildBulkActionBar(colorScheme, linksProvider)
+              : null,
+          floatingActionButton: linksProvider.selectedIds.isNotEmpty
+              ? null
+              : Showcase(
+                  key: _addKey,
+                  title: 'Add New Link',
+                  description: 'Click here to save and organize your links.',
+                  child: FloatingActionButton.extended(
+                    onPressed: () => _showLinkBottomSheet(),
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text(
+                      'Add Link',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
         ),
-      ),
       ),
     );
   }
 
-  AppBar _buildAppBar(BuildContext context, ColorScheme colorScheme, SettingsProvider settings, LinksProvider linksProvider, {required bool isDesktop}) {
+  AppBar _buildAppBar(
+    BuildContext context,
+    ColorScheme colorScheme,
+    SettingsProvider settings,
+    LinksProvider linksProvider, {
+    required bool isDesktop,
+  }) {
     return AppBar(
       primary: !isDesktop,
       title: Row(
@@ -979,11 +1220,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Image.asset(
-              'app_logo.png',
-              width: 20,
-              height: 20,
-            ),
+            child: Image.asset('app_logo.png', width: 20, height: 20),
           ),
           const SizedBox(width: 12),
           const Text(
@@ -1014,14 +1251,19 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           ),
         ),
         IconButton(
-          icon: Icon(linksProvider.showArchived ? Icons.archive_rounded : Icons.unarchive_rounded),
+          icon: Icon(
+            linksProvider.showArchived
+                ? Icons.archive_rounded
+                : Icons.unarchive_rounded,
+          ),
           onPressed: linksProvider.toggleShowArchived,
           tooltip: linksProvider.showArchived ? 'Show Active' : 'Show Archived',
         ),
         Showcase(
           key: _settingsKey,
           title: 'Settings',
-          description: 'Access backups, theme settings, import/export data here.',
+          description:
+              'Access backups, theme settings, import/export data here.',
           child: IconButton(
             icon: const Icon(Icons.settings_rounded),
             onPressed: _openSettings,
@@ -1032,7 +1274,13 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  Widget _buildHomeBody(BuildContext context, ColorScheme colorScheme, SettingsProvider settings, LinksProvider linksProvider, bool isDesktop) {
+  Widget _buildHomeBody(
+    BuildContext context,
+    ColorScheme colorScheme,
+    SettingsProvider settings,
+    LinksProvider linksProvider,
+    bool isDesktop,
+  ) {
     final links = linksProvider.links;
     return DynamicBackground(
       isEnabled: settings.isDynamicBackgroundEnabled,
@@ -1043,7 +1291,8 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           Showcase(
             key: _searchKey,
             title: 'Search & Filter',
-            description: 'Find your saved links easily, and filter by categories below.',
+            description:
+                'Find your saved links easily, and filter by categories below.',
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: GlassContainer(
@@ -1054,7 +1303,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                   focusNode: _searchFocusNode,
                   onChanged: linksProvider.setSearchQuery,
                   decoration: InputDecoration(
-                    hintText: isDesktop ? 'Search links... (Ctrl+F)' : 'Search links...',
+                    hintText: isDesktop
+                        ? 'Search links... (Ctrl+F)'
+                        : 'Search links...',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: linksProvider.searchQuery.isNotEmpty
                         ? IconButton(
@@ -1071,7 +1322,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: settings.isGlassEnabled ? 0.3 : 0.8),
+                    fillColor: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: settings.isGlassEnabled ? 0.3 : 0.8,
+                    ),
                   ),
                 ),
               ),
@@ -1090,45 +1343,71 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                 itemBuilder: (context, index) {
                   final cat = linksProvider.categories[index];
                   final isSelected = linksProvider.selectedCategory == cat;
-                  
+
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: GestureDetector(
                       onTap: () => linksProvider.setCategory(cat),
-                      onSecondaryTapDown: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
-                      onLongPressStart: (details) => _showCategoryContextMenu(context, details.globalPosition, cat, colorScheme),
+                      onSecondaryTapDown: (details) => _showCategoryContextMenu(
+                        context,
+                        details.globalPosition,
+                        cat,
+                        colorScheme,
+                      ),
+                      onLongPressStart: (details) => _showCategoryContextMenu(
+                        context,
+                        details.globalPosition,
+                        cat,
+                        colorScheme,
+                      ),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 0,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(25),
-                          gradient: isSelected 
-                            ? LinearGradient(
-                                colors: [
-                                  colorScheme.primary,
-                                  colorScheme.primary.withBlue(200).withGreen(150),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                          color: !isSelected 
-                            ? (isSelected 
-                                ? colorScheme.primaryContainer.withValues(alpha: 0.4) 
-                                : colorScheme.surfaceContainerHighest.withValues(alpha: settings.isGlassEnabled ? 0.3 : 0.8))
-                            : null,
-                          boxShadow: isSelected ? [
-                            BoxShadow(
-                              color: colorScheme.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            )
-                          ] : [],
+                          gradient: isSelected
+                              ? LinearGradient(
+                                  colors: [
+                                    colorScheme.primary,
+                                    colorScheme.primary
+                                        .withBlue(200)
+                                        .withGreen(150),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          color: !isSelected
+                              ? (isSelected
+                                    ? colorScheme.primaryContainer.withValues(
+                                        alpha: 0.4,
+                                      )
+                                    : colorScheme.surfaceContainerHighest
+                                          .withValues(
+                                            alpha: settings.isGlassEnabled
+                                                ? 0.3
+                                                : 0.8,
+                                          ))
+                              : null,
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: colorScheme.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : [],
                           border: Border.all(
-                            color: isSelected 
-                              ? colorScheme.primary.withValues(alpha: 0.5)
-                              : Colors.white.withValues(alpha: 0.1),
+                            color: isSelected
+                                ? colorScheme.primary.withValues(alpha: 0.5)
+                                : Colors.white.withValues(alpha: 0.1),
                             width: 1,
                           ),
                         ),
@@ -1138,17 +1417,23 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                             children: [
                               if (cat == 'All') ...[
                                 Icon(
-                                  Icons.grid_view_rounded, 
-                                  size: 16, 
-                                  color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant
+                                  Icons.grid_view_rounded,
+                                  size: 16,
+                                  color: isSelected
+                                      ? colorScheme.onPrimary
+                                      : colorScheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 8),
                               ],
                               Text(
                                 cat,
                                 style: TextStyle(
-                                  color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  color: isSelected
+                                      ? colorScheme.onPrimary
+                                      : colorScheme.onSurface,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
                                   fontSize: 14,
                                   letterSpacing: 0.3,
                                 ),
@@ -1178,7 +1463,10 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
@@ -1200,10 +1488,19 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                     if (value != null) linksProvider.setSortOrder(value);
                   },
                   items: const [
-                    DropdownMenuItem(value: 'newest', child: Text('Newest First')),
-                    DropdownMenuItem(value: 'oldest', child: Text('Oldest First')),
+                    DropdownMenuItem(
+                      value: 'newest',
+                      child: Text('Newest First'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'oldest',
+                      child: Text('Oldest First'),
+                    ),
                     DropdownMenuItem(value: 'alphabetical', child: Text('A-Z')),
-                    DropdownMenuItem(value: 'most_clicked', child: Text('Most Clicked')),
+                    DropdownMenuItem(
+                      value: 'most_clicked',
+                      child: Text('Most Clicked'),
+                    ),
                   ],
                 ),
               ],
@@ -1211,7 +1508,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           ),
           // Links List/Grid
           Expanded(
-            child: linksProvider.totalLinks == 0 && linksProvider.searchQuery.isEmpty
+            child:
+                linksProvider.totalLinks == 0 &&
+                    linksProvider.searchQuery.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1232,18 +1531,20 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                         const SizedBox(height: 8),
                         Text(
                           'Tap the + button to add your first link!',
-                          style: TextStyle(
-                            color: colorScheme.outline,
-                          ),
+                          style: TextStyle(color: colorScheme.outline),
                         ),
                       ],
                     ),
                   )
                 : links.isEmpty
-                    ? Center(child: Text('No results for "${linksProvider.searchQuery}"'))
-                    : settings.isGridView
-                        ? _buildGridView(colorScheme, links, linksProvider)
-                        : _buildListView(colorScheme, links, linksProvider),
+                ? Center(
+                    child: Text(
+                      'No results for "${linksProvider.searchQuery}"',
+                    ),
+                  )
+                : settings.isGridView
+                ? _buildGridView(colorScheme, links, linksProvider)
+                : _buildListView(colorScheme, links, linksProvider),
           ),
         ],
       ),
@@ -1253,7 +1554,10 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   Widget _buildBulkActionBar(ColorScheme colorScheme, LinksProvider provider) {
     final isNarrow = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isNarrow ? 12 : 24, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isNarrow ? 12 : 24,
+        vertical: 8,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.primaryContainer,
         boxShadow: [
@@ -1268,7 +1572,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         child: Row(
           children: [
             Text(
-              isNarrow ? '${provider.selectedIds.length}' : '${provider.selectedIds.length} selected',
+              isNarrow
+                  ? '${provider.selectedIds.length}'
+                  : '${provider.selectedIds.length} selected',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: colorScheme.onPrimaryContainer,
@@ -1276,21 +1582,29 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             ),
             const Spacer(),
             if (isNarrow) ...[
-               IconButton(
-                 onPressed: () => provider.bulkArchive(!provider.showArchived),
-                 icon: Icon(provider.showArchived ? Icons.unarchive_rounded : Icons.archive_rounded),
-                 tooltip: provider.showArchived ? 'Unarchive' : 'Archive',
-               ),
-               IconButton(
-                 onPressed: () => _showBulkDeleteDialog(provider),
-                 icon: const Icon(Icons.delete_outline_rounded),
-                 color: colorScheme.error,
-                 tooltip: 'Delete',
-               ),
+              IconButton(
+                onPressed: () => provider.bulkArchive(!provider.showArchived),
+                icon: Icon(
+                  provider.showArchived
+                      ? Icons.unarchive_rounded
+                      : Icons.archive_rounded,
+                ),
+                tooltip: provider.showArchived ? 'Unarchive' : 'Archive',
+              ),
+              IconButton(
+                onPressed: () => _showBulkDeleteDialog(provider),
+                icon: const Icon(Icons.delete_outline_rounded),
+                color: colorScheme.error,
+                tooltip: 'Delete',
+              ),
             ] else ...[
               TextButton.icon(
                 onPressed: () => provider.bulkArchive(!provider.showArchived),
-                icon: Icon(provider.showArchived ? Icons.unarchive_rounded : Icons.archive_rounded),
+                icon: Icon(
+                  provider.showArchived
+                      ? Icons.unarchive_rounded
+                      : Icons.archive_rounded,
+                ),
                 label: Text(provider.showArchived ? 'Unarchive' : 'Archive'),
               ),
               const SizedBox(width: 8),
@@ -1320,13 +1634,18 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         title: const Text('Bulk Delete'),
         content: Text('Delete ${provider.selectedIds.length} selected links?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               provider.bulkDelete();
               Navigator.pop(context);
             },
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Delete All'),
           ),
         ],
@@ -1334,7 +1653,11 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  Widget _buildListView(ColorScheme colorScheme, List<LinkItem> links, LinksProvider provider) {
+  Widget _buildListView(
+    ColorScheme colorScheme,
+    List<LinkItem> links,
+    LinksProvider provider,
+  ) {
     return AnimationLimiter(
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -1354,7 +1677,8 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                     onTap: () => _openLink(link.url),
                     onEdit: () => _showLinkBottomSheet(existingLink: link),
                     onDelete: () => provider.removeLink(link.id),
-                    onArchive: () => provider.archiveLink(link.id, !link.isArchived),
+                    onArchive: () =>
+                        provider.archiveLink(link.id, !link.isArchived),
                     isSelected: provider.selectedIds.contains(link.id),
                     onLongPress: () => provider.toggleSelection(link.id),
                     colorScheme: colorScheme,
@@ -1368,14 +1692,19 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     );
   }
 
-  Widget _buildGridView(ColorScheme colorScheme, List<LinkItem> links, LinksProvider provider) {
+  Widget _buildGridView(
+    ColorScheme colorScheme,
+    List<LinkItem> links,
+    LinksProvider provider,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         const double itemWidth = 220.0;
         const double itemHeight = 220.0;
         const double crossAxisSpacing = 12.0;
 
-        int crossAxisCount = (constraints.maxWidth / (itemWidth + crossAxisSpacing)).floor();
+        int crossAxisCount =
+            (constraints.maxWidth / (itemWidth + crossAxisSpacing)).floor();
         crossAxisCount = crossAxisCount.clamp(2, 6);
 
         return AnimationLimiter(
@@ -1401,12 +1730,13 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                       link: link,
                       onTap: () => _openLink(link.url),
                       onEdit: () => _showLinkBottomSheet(existingLink: link),
-                     onDelete: () => provider.removeLink(link.id),
-                     onArchive: () => provider.archiveLink(link.id, !link.isArchived),
-                     isSelected: provider.selectedIds.contains(link.id),
-                     onLongPress: () => provider.toggleSelection(link.id),
-                     colorScheme: colorScheme,
-                   ),
+                      onDelete: () => provider.removeLink(link.id),
+                      onArchive: () =>
+                          provider.archiveLink(link.id, !link.isArchived),
+                      isSelected: provider.selectedIds.contains(link.id),
+                      onLongPress: () => provider.toggleSelection(link.id),
+                      colorScheme: colorScheme,
+                    ),
                   ),
                 ),
               );
