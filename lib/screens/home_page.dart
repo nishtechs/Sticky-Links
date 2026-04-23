@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
+import '../models/shortcuts.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../models/link_item.dart';
@@ -55,6 +56,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   @override
   void initState() {
     super.initState();
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
 
     // Set up receiving intents (shared links from other apps)
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -94,13 +96,13 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
       });
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<LinksProvider>().loadLinks();
       final settings = context.read<SettingsProvider>();
 
       if (!settings.isWhatsNewSeen) {
-        Navigator.of(context).push(
+        await Navigator.of(context).push(
           PageRouteBuilder(
             pageBuilder: (context, _, _) => const WhatsNewPage(),
             transitionsBuilder:
@@ -110,11 +112,71 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             transitionDuration: const Duration(milliseconds: 600),
           ),
         );
-      } else if (!StorageService.hasShownTutorial) {
-        ShowcaseView.get().startShowCase([_addKey, _searchKey, _settingsKey]);
-        StorageService.setHasShownTutorial(true);
+      }
+
+      if (!mounted) return;
+
+      if (!StorageService.hasShownTutorial) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) {
+            ShowCaseWidget.of(
+              context,
+            ).startShowCase([_addKey, _searchKey, _settingsKey]);
+            StorageService.setHasShownTutorial(true);
+          }
+        });
       }
     });
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final isControl = HardwareKeyboard.instance.isControlPressed;
+
+      if (isControl && event.logicalKey == LogicalKeyboardKey.keyF) {
+        _searchFocusNode.requestFocus();
+        _searchController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _searchController.text.length,
+        );
+        return true;
+      }
+
+      if (isControl && event.logicalKey == LogicalKeyboardKey.keyN) {
+        _showLinkBottomSheet();
+        return true;
+      }
+
+      if (isControl && event.logicalKey == LogicalKeyboardKey.keyH) {
+        if (mounted) context.read<LinksProvider>().toggleShowArchived();
+        return true;
+      }
+
+      if (isControl && event.logicalKey == LogicalKeyboardKey.keyV) {
+        if (mounted) {
+          final settings = context.read<SettingsProvider>();
+          settings.toggleGridView(!settings.isGridView);
+        }
+        return true;
+      }
+
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        if (mounted) {
+          final linksProvider = context.read<LinksProvider>();
+          if (linksProvider.selectedIds.isNotEmpty) {
+            linksProvider.clearSelection();
+            return true;
+          } else if (linksProvider.searchQuery.isNotEmpty ||
+              _searchFocusNode.hasFocus) {
+            linksProvider.setSearchQuery('');
+            _searchController.clear();
+            _searchFocusNode.unfocus();
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   Future<void> _handleSharedText(String text) async {
@@ -226,6 +288,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _titleController.dispose();
     _urlController.dispose();
     _descriptionController.dispose();
@@ -1063,9 +1126,9 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
     final linksProvider = context.watch<LinksProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     final isDesktop =
         !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
@@ -1080,125 +1143,99 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
           SystemNavigator.pop();
         }
       },
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
-            _searchFocusNode.requestFocus();
-            _searchController.selection = TextSelection(
-              baseOffset: 0,
-              extentOffset: _searchController.text.length,
-            );
-          },
-          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
-              _showLinkBottomSheet(),
-          const SingleActivator(LogicalKeyboardKey.keyH, control: true): () =>
-              linksProvider.toggleShowArchived(),
-          const SingleActivator(LogicalKeyboardKey.keyV, control: true): () =>
-              settings.toggleGridView(!settings.isGridView),
-          const SingleActivator(LogicalKeyboardKey.escape): () {
-            if (linksProvider.selectedIds.isNotEmpty) {
-              linksProvider.clearSelection();
-            } else {
-              linksProvider.setSearchQuery('');
-              _searchController.clear();
-              _searchFocusNode.unfocus();
-            }
-          },
-        },
-        child: Scaffold(
-          appBar: isDesktop
-              ? PreferredSize(
-                  preferredSize: Size.fromHeight(
-                    kToolbarHeight + appWindow.titleBarHeight,
-                  ),
-                  child: Column(
-                    children: [
-                      WindowTitleBarBox(
-                        child: Row(
-                          children: [
-                            Expanded(child: MoveWindow()),
-                            const CustomWindowButtons(),
-                          ],
-                        ),
+      child: Scaffold(
+        appBar: isDesktop
+            ? PreferredSize(
+                preferredSize: Size.fromHeight(
+                  kToolbarHeight + appWindow.titleBarHeight,
+                ),
+                child: Column(
+                  children: [
+                    WindowTitleBarBox(
+                      child: Row(
+                        children: [
+                          Expanded(child: MoveWindow()),
+                          const CustomWindowButtons(),
+                        ],
                       ),
-                      _buildAppBar(
-                        context,
-                        colorScheme,
-                        settings,
-                        linksProvider,
-                        isDesktop: true,
-                      ),
-                    ],
-                  ),
-                )
-              : _buildAppBar(
+                    ),
+                    _buildAppBar(
+                      context,
+                      colorScheme,
+                      settings,
+                      linksProvider,
+                      isDesktop: true,
+                    ),
+                  ],
+                ),
+              )
+            : _buildAppBar(
+                context,
+                colorScheme,
+                settings,
+                linksProvider,
+                isDesktop: false,
+              ),
+        body: isDesktop
+            ? DropTarget(
+                onDragDone: (details) async {
+                  final provider = context.read<LinksProvider>();
+                  for (final file in details.files) {
+                    final path = file.path;
+                    if (path.startsWith('http')) {
+                      final meta = await MetadataService.fetchMetadata(path);
+                      final newLink = LinkItem(
+                        id: const Uuid().v4(),
+                        title: meta['title'] ?? path,
+                        url: path,
+                        description: meta['description'],
+                        faviconUrl: meta['faviconUrl'],
+                        previewImageUrl: meta['previewImageUrl'],
+                        category: linksProvider.selectedCategory == 'All'
+                            ? null
+                            : linksProvider.selectedCategory,
+                      );
+                      await provider.addLink(newLink);
+                    }
+                  }
+                },
+                child: _buildHomeBody(
                   context,
                   colorScheme,
                   settings,
                   linksProvider,
-                  isDesktop: false,
+                  isDesktop,
                 ),
-          body: isDesktop
-              ? DropTarget(
-                  onDragDone: (details) async {
-                    final provider = context.read<LinksProvider>();
-                    for (final file in details.files) {
-                      final path = file.path;
-                      if (path.startsWith('http')) {
-                        final meta = await MetadataService.fetchMetadata(path);
-                        final newLink = LinkItem(
-                          id: const Uuid().v4(),
-                          title: meta['title'] ?? path,
-                          url: path,
-                          description: meta['description'],
-                          faviconUrl: meta['faviconUrl'],
-                          previewImageUrl: meta['previewImageUrl'],
-                          category: linksProvider.selectedCategory == 'All'
-                              ? null
-                              : linksProvider.selectedCategory,
-                        );
-                        await provider.addLink(newLink);
-                      }
-                    }
-                  },
-                  child: _buildHomeBody(
-                    context,
-                    colorScheme,
-                    settings,
-                    linksProvider,
-                    isDesktop,
-                  ),
-                )
-              : SafeArea(
-                  child: _buildHomeBody(
-                    context,
-                    colorScheme,
-                    settings,
-                    linksProvider,
-                    isDesktop,
+              )
+            : SafeArea(
+                child: _buildHomeBody(
+                  context,
+                  colorScheme,
+                  settings,
+                  linksProvider,
+                  isDesktop,
+                ),
+              ),
+        bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
+            ? _buildBulkActionBar(colorScheme, linksProvider)
+            : null,
+        floatingActionButton: linksProvider.selectedIds.isNotEmpty
+            ? null
+            : Showcase(
+                key: _addKey,
+                title: 'Add New Link',
+                description: 'Click here to save and organize your links.',
+                child: FloatingActionButton.extended(
+                  onPressed: () => _showLinkBottomSheet(),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text(
+                    'Add Link',
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-          bottomNavigationBar: linksProvider.selectedIds.isNotEmpty
-              ? _buildBulkActionBar(colorScheme, linksProvider)
-              : null,
-          floatingActionButton: linksProvider.selectedIds.isNotEmpty
-              ? null
-              : Showcase(
-                  key: _addKey,
-                  title: 'Add New Link',
-                  description: 'Click here to save and organize your links.',
-                  child: FloatingActionButton.extended(
-                    onPressed: () => _showLinkBottomSheet(),
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text(
-                      'Add Link',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-        ),
+              ),
       ),
     );
   }
@@ -1700,7 +1737,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         const double itemWidth = 220.0;
-        const double itemHeight = 220.0;
+        const double itemHeight = 250.0;
         const double crossAxisSpacing = 12.0;
 
         int crossAxisCount =

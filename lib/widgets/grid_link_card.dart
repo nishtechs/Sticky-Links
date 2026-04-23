@@ -346,7 +346,7 @@ class GridLinkCard extends StatelessWidget {
                               Flexible(
                                 flex: 1,
                                 child: Text(
-                                  Uri.parse(link.url).host,
+                                  _getDisplayUrl(link.url),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: colorScheme.outline,
@@ -447,5 +447,15 @@ class GridLinkCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getDisplayUrl(String url) {
+    try {
+      final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+      if (uri.host.isNotEmpty) {
+        return uri.host.replaceFirst('www.', '');
+      }
+    } catch (_) {}
+    return url;
   }
 }

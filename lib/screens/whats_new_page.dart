@@ -68,48 +68,46 @@ class WhatsNewPage extends StatelessWidget {
                           const SizedBox(height: 40),
 
                           // Feature List
-                          Flexible(
-                            child: AnimationLimiter(
-                              child: ListView(
-                                shrinkWrap: true,
-                                children: AnimationConfiguration.toStaggeredList(
-                                  duration: const Duration(milliseconds: 500),
-                                  childAnimationBuilder: (widget) =>
-                                      SlideAnimation(
-                                        verticalOffset: 30.0,
-                                        child: FadeInAnimation(child: widget),
-                                      ),
-                                  children: [
-                                    _buildFeatureItem(
-                                      context,
-                                      Icons.security_rounded,
-                                      'Privacy & Clarity',
-                                      'Renamed "Backup Location" to "Backup Folder" to clarify that the app does not use GPS or tracking services.',
-                                      colorScheme.primary,
+                          AnimationLimiter(
+                            child: ListView(
+                              shrinkWrap: true,
+                              children: AnimationConfiguration.toStaggeredList(
+                                duration: const Duration(milliseconds: 500),
+                                childAnimationBuilder: (widget) =>
+                                    SlideAnimation(
+                                      verticalOffset: 30.0,
+                                      child: FadeInAnimation(child: widget),
                                     ),
-                                    _buildFeatureItem(
-                                      context,
-                                      Icons.keyboard_rounded,
-                                      'Shortcut Documentation',
-                                      'A dedicated "Shortcuts" section in Settings now helps you master quick navigation on Desktop.',
-                                      colorScheme.secondary,
-                                    ),
-                                    _buildFeatureItem(
-                                      context,
-                                      Icons.search_off_rounded,
-                                      'Improved Ctrl + F',
-                                      'The search shortcut is now more reliable and automatically selects text for instant re-searching.',
-                                      colorScheme.tertiary,
-                                    ),
-                                    _buildFeatureItem(
-                                      context,
-                                      Icons.ads_click_rounded,
-                                      'Universal Shortcuts',
-                                      'Keyboard shortcuts are now globally responsive across the entire application window.',
-                                      colorScheme.primary,
-                                    ),
-                                  ],
-                                ),
+                                children: [
+                                  _buildFeatureItem(
+                                    context,
+                                    Icons.keyboard_command_key_rounded,
+                                    'Global Keyboard Architecture',
+                                    'Shortcuts like Ctrl+F and Ctrl+N now work flawlessly everywhere in the app, regardless of focus.',
+                                    colorScheme.primary,
+                                  ),
+                                  _buildFeatureItem(
+                                    context,
+                                    Icons.language_rounded,
+                                    'Grid View UI Fixes',
+                                    'Fixed an issue where URLs were being cut off and not displaying properly underneath preview images.',
+                                    colorScheme.secondary,
+                                  ),
+                                  _buildFeatureItem(
+                                    context,
+                                    Icons.auto_awesome_rounded,
+                                    'Smooth Onboarding',
+                                    'The introductory Showcase tutorial now triggers reliably to help you get started quickly.',
+                                    colorScheme.tertiary,
+                                  ),
+                                  _buildFeatureItem(
+                                    context,
+                                    Icons.build_circle_rounded,
+                                    'Blank Screen Bug Fixed',
+                                    'Resolved a critical layout error that caused the application to show a blank white screen on first start.',
+                                    colorScheme.primary,
+                                  ),
+                                ],
                               ),
                             ),
                           ),

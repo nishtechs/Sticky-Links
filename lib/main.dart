@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:flutter/services.dart';
 
 import 'services/storage_service.dart';
 import 'services/backup_service.dart';
@@ -11,6 +12,7 @@ import 'services/server_service.dart';
 import 'providers/settings_provider.dart';
 import 'providers/links_provider.dart';
 import 'screens/home_page.dart';
+import 'models/shortcuts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
