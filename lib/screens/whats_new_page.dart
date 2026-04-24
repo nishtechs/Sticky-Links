@@ -81,16 +81,16 @@ class WhatsNewPage extends StatelessWidget {
                                 children: [
                                   _buildFeatureItem(
                                     context,
-                                    Icons.keyboard_command_key_rounded,
-                                    'Global Keyboard Architecture',
-                                    'Shortcuts like Ctrl+F and Ctrl+N now work flawlessly everywhere in the app, regardless of focus.',
+                                    Icons.category_rounded,
+                                    'Dynamic Category Overflow',
+                                    'When you have too many categories to fit on the screen, a convenient "More" button automatically appears!',
                                     colorScheme.primary,
                                   ),
                                   _buildFeatureItem(
                                     context,
-                                    Icons.language_rounded,
-                                    'Grid View UI Fixes',
-                                    'Fixed an issue where URLs were being cut off and not displaying properly underneath preview images.',
+                                    Icons.touch_app_rounded,
+                                    'All Categories Popup',
+                                    'Clicking the "More" button opens a clean popup dialog to quickly select any of your tags.',
                                     colorScheme.secondary,
                                   ),
                                   _buildFeatureItem(
@@ -103,8 +103,8 @@ class WhatsNewPage extends StatelessWidget {
                                   _buildFeatureItem(
                                     context,
                                     Icons.build_circle_rounded,
-                                    'Blank Screen Bug Fixed',
-                                    'Resolved a critical layout error that caused the application to show a blank white screen on first start.',
+                                    'Under-The-Hood Polish',
+                                    'Numerous stability improvements and UI refinements to ensure a smooth bookmarking experience.',
                                     colorScheme.primary,
                                   ),
                                 ],

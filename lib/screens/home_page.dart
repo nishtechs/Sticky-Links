@@ -50,6 +50,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
   final GlobalKey _settingsKey = GlobalKey();
   final FocusNode _searchFocusNode = FocusNode();
   final ScrollController _categoryScrollController = ScrollController();
+  bool _isCategoryOverflowing = false;
 
   StreamSubscription? _intentDataStreamSubscription;
 
@@ -1372,116 +1373,166 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
             child: SizedBox(
               height: 50,
-              child: ListView.builder(
-                controller: _categoryScrollController,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: linksProvider.categories.length,
-                itemBuilder: (context, index) {
-                  final cat = linksProvider.categories[index];
-                  final isSelected = linksProvider.selectedCategory == cat;
+              child: NotificationListener<ScrollMetricsNotification>(
+                onNotification: (notification) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    final isOverflowing =
+                        notification.metrics.maxScrollExtent > 0;
+                    if (_isCategoryOverflowing != isOverflowing) {
+                      setState(() {
+                        _isCategoryOverflowing = isOverflowing;
+                      });
+                    }
+                  });
+                  return false;
+                },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _categoryScrollController,
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: linksProvider.categories.length,
+                        itemBuilder: (context, index) {
+                          final cat = linksProvider.categories[index];
+                          final isSelected =
+                              linksProvider.selectedCategory == cat;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: GestureDetector(
-                      onTap: () => linksProvider.setCategory(cat),
-                      onSecondaryTapDown: (details) => _showCategoryContextMenu(
-                        context,
-                        details.globalPosition,
-                        cat,
-                        colorScheme,
-                      ),
-                      onLongPressStart: (details) => _showCategoryContextMenu(
-                        context,
-                        details.globalPosition,
-                        cat,
-                        colorScheme,
-                      ),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 0,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(25),
-                          gradient: isSelected
-                              ? LinearGradient(
-                                  colors: [
-                                    colorScheme.primary,
-                                    colorScheme.primary
-                                        .withBlue(200)
-                                        .withGreen(150),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                              : null,
-                          color: !isSelected
-                              ? (isSelected
-                                    ? colorScheme.primaryContainer.withValues(
-                                        alpha: 0.4,
-                                      )
-                                    : colorScheme.surfaceContainerHighest
-                                          .withValues(
-                                            alpha: settings.isGlassEnabled
-                                                ? 0.3
-                                                : 0.8,
-                                          ))
-                              : null,
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: colorScheme.primary.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: GestureDetector(
+                              onTap: () => linksProvider.setCategory(cat),
+                              onSecondaryTapDown: (details) =>
+                                  _showCategoryContextMenu(
+                                    context,
+                                    details.globalPosition,
+                                    cat,
+                                    colorScheme,
                                   ),
-                                ]
-                              : [],
-                          border: Border.all(
-                            color: isSelected
-                                ? colorScheme.primary.withValues(alpha: 0.5)
-                                : Colors.white.withValues(alpha: 0.1),
-                            width: 1,
-                          ),
-                        ),
-                        child: Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (cat == 'All') ...[
-                                Icon(
-                                  Icons.grid_view_rounded,
-                                  size: 16,
-                                  color: isSelected
-                                      ? colorScheme.onPrimary
-                                      : colorScheme.onSurfaceVariant,
+                              onLongPressStart: (details) =>
+                                  _showCategoryContextMenu(
+                                    context,
+                                    details.globalPosition,
+                                    cat,
+                                    colorScheme,
+                                  ),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOut,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 0,
                                 ),
-                                const SizedBox(width: 8),
-                              ],
-                              Text(
-                                cat,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? colorScheme.onPrimary
-                                      : colorScheme.onSurface,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  fontSize: 14,
-                                  letterSpacing: 0.3,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(25),
+                                  gradient: isSelected
+                                      ? LinearGradient(
+                                          colors: [
+                                            colorScheme.primary,
+                                            colorScheme.primary
+                                                .withBlue(200)
+                                                .withGreen(150),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : null,
+                                  color: !isSelected
+                                      ? (isSelected
+                                            ? colorScheme.primaryContainer
+                                                  .withValues(alpha: 0.4)
+                                            : colorScheme
+                                                  .surfaceContainerHighest
+                                                  .withValues(
+                                                    alpha:
+                                                        settings.isGlassEnabled
+                                                        ? 0.3
+                                                        : 0.8,
+                                                  ))
+                                      : null,
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: colorScheme.primary
+                                                .withValues(alpha: 0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                      : [],
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? colorScheme.primary.withValues(
+                                            alpha: 0.5,
+                                          )
+                                        : Colors.white.withValues(alpha: 0.1),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (cat == 'All') ...[
+                                        Icon(
+                                          Icons.grid_view_rounded,
+                                          size: 16,
+                                          color: isSelected
+                                              ? colorScheme.onPrimary
+                                              : colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Text(
+                                        cat,
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? colorScheme.onPrimary
+                                              : colorScheme.onSurface,
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          fontSize: 14,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    if (_isCategoryOverflowing)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0, right: 16.0),
+                        child: TextButton.icon(
+                          onPressed: () => _showAllCategoriesPopup(
+                            context,
+                            linksProvider,
+                            colorScheme,
+                            settings,
+                          ),
+                          icon: const Icon(Icons.expand_more_rounded, size: 20),
+                          label: const Text('More'),
+                          style: TextButton.styleFrom(
+                            backgroundColor: colorScheme.surfaceContainerHighest
+                                .withValues(
+                                  alpha: settings.isGlassEnabled ? 0.3 : 0.8,
+                                ),
+                            foregroundColor: colorScheme.onSurface,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
           ),
@@ -1779,6 +1830,65 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
               );
             },
           ),
+        );
+      },
+    );
+  }
+
+  void _showAllCategoriesPopup(
+    BuildContext context,
+    LinksProvider linksProvider,
+    ColorScheme colorScheme,
+    SettingsProvider settings,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            'All Categories',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: linksProvider.categories.map((cat) {
+                  final isSelected = linksProvider.selectedCategory == cat;
+                  return ActionChip(
+                    label: Text(cat),
+                    backgroundColor: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.surfaceContainerHighest,
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurface,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    onPressed: () {
+                      linksProvider.setCategory(cat);
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
         );
       },
     );
