@@ -1626,8 +1626,29 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                   )
                 : links.isEmpty
                 ? Center(
-                    child: Text(
-                      'No results for "${linksProvider.searchQuery}"',
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          linksProvider.searchQuery.isNotEmpty
+                              ? Icons.search_off_rounded
+                              : Icons.filter_list_off_rounded,
+                          size: 52,
+                          color: colorScheme.outline,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          linksProvider.searchQuery.isNotEmpty
+                              ? 'No results for "${linksProvider.searchQuery}"'
+                              : linksProvider.selectedCategory != 'All'
+                              ? 'No links in "${linksProvider.selectedCategory}"'
+                              : 'No links found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colorScheme.outline,
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : settings.isGridView

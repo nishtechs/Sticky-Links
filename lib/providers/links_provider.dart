@@ -61,7 +61,7 @@ class LinksProvider with ChangeNotifier {
 
   int get totalLinks => _links.length;
   String get searchQuery => _searchQuery;
-  String? get selectedCategory => _selectedCategory;
+  String get selectedCategory => _selectedCategory ?? 'All';
   String get sortOrder => _sortOrder;
 
   Future<void> loadLinks() async {
@@ -298,7 +298,8 @@ class LinksProvider with ChangeNotifier {
   }
 
   void setCategory(String? category) {
-    _selectedCategory = category;
+    // Normalize: 'All' means no filter (null internally)
+    _selectedCategory = (category == null || category == 'All') ? null : category;
     notifyListeners();
   }
 

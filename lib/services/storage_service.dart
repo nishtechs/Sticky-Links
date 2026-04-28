@@ -107,7 +107,7 @@ class StorageService {
   }
 
   static bool get isWhatsNewSeen =>
-      settingsBox.get('isWhatsNewSeen_v230', defaultValue: false);
+      settingsBox.get('isWhatsNewSeen_v243', defaultValue: false);
   static Future<void> setWhatsNewSeen(bool value) async =>
-      await settingsBox.put('isWhatsNewSeen_v230', value);
+      await settingsBox.put('isWhatsNewSeen_v243', value);
 }
