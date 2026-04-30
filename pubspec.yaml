@@ -134,8 +134,8 @@ flutter_launcher_icons:
 
 msix_config:
   display_name: Sticky Links
-  publisher_display_name: Sticky Links
-  publisher: CN=StickyLinks
+  publisher_display_name: Nishant Sharma
+  publisher: CN=Nishant Sharma
   identity_name: com.stickylinks.app
   msix_version: 1.0.0.0
   logo_path: app_logo.png
@@ -143,6 +143,7 @@ msix_config:
 
 inno_bundle:
   id: ea2da1d0-3269-11f1-a5b4-05e8f4fee515
-  publisher: nisha
+  publisher: "Nishant Sharma"
+  url: "https://github.com/nishtechs"
   languages:
     - english
