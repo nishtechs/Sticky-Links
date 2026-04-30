@@ -585,6 +585,29 @@ class SettingsPage extends StatelessWidget {
                 );
               },
             ),
+            const Divider(height: 1),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.policy_rounded,
+                  color: colorScheme.onPrimaryContainer,
+                ),
+              ),
+              title: const Text('Open Source Licenses'),
+              onTap: () {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Sticky Links',
+                  applicationVersion: AppConstants.appVersion,
+                  applicationLegalese: 'Copyright © 2026 Nishant Sharma',
+                );
+              },
+            ),
           ],
         ),
       ],
