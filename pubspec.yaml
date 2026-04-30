@@ -145,5 +145,6 @@ inno_bundle:
   id: ea2da1d0-3269-11f1-a5b4-05e8f4fee515
   publisher: "Nishant Sharma"
   url: "https://github.com/nishtechs"
+  license_file: LICENSE
   languages:
     - english
