@@ -34,103 +34,106 @@ class WhatsNewPage extends StatelessWidget {
                     opacity: 0.1,
                     child: Padding(
                       padding: const EdgeInsets.all(40),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header
-                          Hero(
-                            tag: 'app_logo',
-                            child: Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 80,
-                              color: colorScheme.primary,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Header
+                            Hero(
+                              tag: 'app_logo',
+                              child: Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 80,
+                                color: colorScheme.primary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            "What's New in Sticky Links v${AppConstants.appVersion}",
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onSurface,
-                              letterSpacing: -0.5,
+                            const SizedBox(height: 24),
+                            Text(
+                              "What's New in Sticky Links v${AppConstants.appVersion}",
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                                letterSpacing: -0.5,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "The ultimate cross-platform bookmarking tool just got better.",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: colorScheme.outline,
+                            const SizedBox(height: 8),
+                            Text(
+                              "The ultimate cross-platform bookmarking tool just got better.",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: colorScheme.outline,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 40),
+                            const SizedBox(height: 40),
 
-                          // Feature List
-                          AnimationLimiter(
-                            child: ListView(
-                              shrinkWrap: true,
-                              children: AnimationConfiguration.toStaggeredList(
-                                duration: const Duration(milliseconds: 500),
-                                childAnimationBuilder: (widget) =>
-                                    SlideAnimation(
-                                      verticalOffset: 30.0,
-                                      child: FadeInAnimation(child: widget),
+                            // Feature List
+                            AnimationLimiter(
+                              child: ListView(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                children: AnimationConfiguration.toStaggeredList(
+                                  duration: const Duration(milliseconds: 500),
+                                  childAnimationBuilder: (widget) =>
+                                      SlideAnimation(
+                                        verticalOffset: 30.0,
+                                        child: FadeInAnimation(child: widget),
+                                      ),
+                                  children: [
+                                    _buildFeatureItem(
+                                      context,
+                                      Icons.keyboard_alt_rounded,
+                                      'Grid View Shortcut Fixed',
+                                      'Pasting a URL (Ctrl+V) no longer accidentally toggles your layout. View toggle has been moved to Ctrl+G.',
+                                      colorScheme.primary,
                                     ),
-                                children: [
-                                  _buildFeatureItem(
-                                    context,
-                                    Icons.keyboard_alt_rounded,
-                                    'Grid View Shortcut Fixed',
-                                    'Pasting a URL (Ctrl+V) no longer accidentally toggles your layout. View toggle has been moved to Ctrl+G.',
-                                    colorScheme.primary,
-                                  ),
-                                  _buildFeatureItem(
-                                    context,
-                                    Icons.location_off_rounded,
-                                    'Windows Location Fix',
-                                    'Removed unused background location checks, stopping the "Location in use" icon from appearing on your system tray.',
-                                    colorScheme.secondary,
-                                  ),
-                                  _buildFeatureItem(
-                                    context,
-                                    Icons.backup_rounded,
-                                    'Manual Backup Shortcut',
-                                    'You can now instantly backup your links anytime by pressing Ctrl+B.',
-                                    colorScheme.tertiary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 48),
-
-                          // Action
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: FilledButton(
-                              onPressed: () {
-                                settings.markWhatsNewSeen();
-                                Navigator.of(context).pop();
-                              },
-                              style: FilledButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: const Text(
-                                "Let's Get Started",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                    _buildFeatureItem(
+                                      context,
+                                      Icons.location_off_rounded,
+                                      'Windows Location Fix',
+                                      'Removed unused background location checks, stopping the "Location in use" icon from appearing on your system tray.',
+                                      colorScheme.secondary,
+                                    ),
+                                    _buildFeatureItem(
+                                      context,
+                                      Icons.backup_rounded,
+                                      'Manual Backup Shortcut',
+                                      'You can now instantly backup your links anytime by pressing Ctrl+B.',
+                                      colorScheme.tertiary,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+
+                            const SizedBox(height: 48),
+
+                            // Action
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: FilledButton(
+                                onPressed: () {
+                                  settings.markWhatsNewSeen();
+                                  Navigator.of(context).pop();
+                                },
+                                style: FilledButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Let's Get Started",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
