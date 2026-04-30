@@ -30,7 +30,7 @@ import 'package:share_handler/share_handler.dart';
 import 'whats_new_page.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
+import '../services/backup_service.dart';
 class StickyLinksHomePage extends StatefulWidget {
   const StickyLinksHomePage({super.key});
 
@@ -153,10 +153,38 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
         return true;
       }
 
-      if (isControl && event.logicalKey == LogicalKeyboardKey.keyV) {
+      if (isControl && event.logicalKey == LogicalKeyboardKey.keyG) {
         if (mounted) {
           final settings = context.read<SettingsProvider>();
           settings.toggleGridView(!settings.isGridView);
+        }
+        return true;
+      }
+
+      if (isControl && event.logicalKey == LogicalKeyboardKey.keyB) {
+        if (mounted) {
+          BackupService.triggerManualBackup().then((_) {
+            if (mounted) {
+              final settings = context.read<SettingsProvider>();
+              settings.refresh();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Backup successful!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }).catchError((e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Backup failed: $e'),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          });
         }
         return true;
       }

@@ -42,3 +42,10 @@ Tagging UI: Expose the existing tags field in the UI.
 Rich Link Previews: Enhancing the LinkCard with more metadata beyond just the favicon.
 Refined Animations: Polishing the list transitions for a more premium feel.
 Would you like me to start implementing one of these features for you?
+
+
+
+i have noticed something the weird behavior of this app
+- when i enter a new url in the dialog box of add new, my grid view turns into list view automatically, it should not
+- this app is accessing my location continously until i close it why ?, i have attached the image
+please fix these issues and enhance this app more

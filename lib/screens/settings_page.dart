@@ -530,13 +530,19 @@ class SettingsPage extends StatelessWidget {
               const Divider(height: 1),
               _buildShortcutTile(
                 title: 'Toggle View Mode',
-                shortcut: '$mod + V',
+                shortcut: '$mod + G',
                 colorScheme: colorScheme,
               ),
               const Divider(height: 1),
               _buildShortcutTile(
                 title: 'Clear / Deselect',
                 shortcut: 'Esc',
+                colorScheme: colorScheme,
+              ),
+              const Divider(height: 1),
+              _buildShortcutTile(
+                title: 'Manual Backup',
+                shortcut: '$mod + B',
                 colorScheme: colorScheme,
               ),
             ],
