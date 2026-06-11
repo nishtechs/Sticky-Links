@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
-import '../models/shortcuts.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../models/link_item.dart';
@@ -846,7 +845,7 @@ class _StickyLinksHomePageState extends State<StickyLinksHomePage> {
                                 ),
                                 const SizedBox(height: 16),
                                 DropdownButtonFormField<String>(
-                                  value:
+                                  initialValue:
                                       _categories.contains(
                                         _selectedDialogCategory,
                                       )

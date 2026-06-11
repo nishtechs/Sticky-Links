@@ -403,8 +403,9 @@ class LinkCard extends StatelessWidget {
                           }
                           if (value == 'archive') onArchive();
                           if (value == 'edit') onEdit();
-                          if (value == 'share')
+                          if (value == 'share') {
                             Share.share(link.url, subject: link.title);
+                          }
                           if (value == 'delete') _showDeleteDialog(context);
                         },
                         itemBuilder: (context) => [
